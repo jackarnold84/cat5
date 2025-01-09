@@ -1,7 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from functools import lru_cache
-from typing import Dict, List, Tuple
+from typing import Any, List, NamedTuple, Tuple
 
 import numpy as np
 from espn_api.basketball import Player, Team
@@ -33,10 +32,10 @@ class Matchup:
         return Model(self.box, self.home_lineup.lineup, self.away_lineup.lineup)
 
     def optimize_home_lineup(self, n=1000) -> List[Tuple[Player, float]]:
-        return self._optimize_lineup(self.home_lineup, n)
+        return self._optimize_lineup(use_home=True, n=n)
 
     def optimize_away_lineup(self, n=1000) -> List[Tuple[Player, float]]:
-        return self._optimize_lineup(self.away_lineup, n)
+        return self._optimize_lineup(use_home=False, n=n)
 
     def _optimize_lineup(self, use_home: bool, n: int) -> List[Tuple[Player, float]]:
         lineup = self.home_lineup if use_home else self.away_lineup
@@ -48,7 +47,7 @@ class Matchup:
         player_count: defaultdict[int, int] = defaultdict(int)
 
         for _ in range(n):
-            lineup.set_randomly(min_weight=0.1)
+            lineup.set_randomly(min_w=20, max_w=80)
             win_p = self.get_model().predict_win()
             for player_start in lineup.lineup:
                 pid = player_start.player.playerId
@@ -57,7 +56,7 @@ class Matchup:
                 player_count[pid] += 1
             if win_p > best_win_p:
                 best_win_p = win_p
-                best_lineup = lineup.lineup.copy()
+                best_lineup = lineup.lineup
 
         player_values = {
             pid: player_win_p[pid] / player_count[pid]
@@ -76,83 +75,104 @@ class Matchup:
 
 
 class Lineup:
+    class EligibleStart(NamedTuple):
+        player_start: PlayerStart
+        std_weight: float
+        probable_weight: float
+
     def __init__(self, team: Team, matchup: Matchup):
         self.team = team
         self.lineup: List[PlayerStart] = []
-        if team.team_id == matchup.box.home_team.team_id:
+        box_home_team: Team = matchup.box.home_team
+        box_away_team: Team = matchup.box.away_team
+        if team.team_id == box_home_team.team_id:
             box_stats = matchup.box.home_stats
             box_lineup = matchup.box.home_lineup
-        elif team.team_id == matchup.box.away_team.team_id:
+        elif team.team_id == box_away_team.team_id:
             box_stats = matchup.box.away_stats
             box_lineup = matchup.box.away_lineup
         else:
             raise ValueError('team not present in matchup')
 
-        self.eligible_starts: List[PlayerStart] = []
-        for player in team.roster:
-            for gid, game in player.schedule.items():
-                if gid in matchup.matchup_period.game_day_ids \
-                        and game['date'] >= matchup.from_date \
-                        and not player.injured \
-                        and player.injuryStatus != 'SUSPENSION':
-                    self.eligible_starts.append(PlayerStart(player, gid))
-
-        self._es_weights: Tuple[float, ...] = tuple([
-            p.player.percent_started for p in self.eligible_starts
-        ])
-
-        matchup.box.home_lineup
-        self.remaining_gp = int(
-            matchup.matchup_period.max_gp -
-            box_stats['GP']['value']
-        )
-
-        self._player_gp: Dict[int, int] = {
+        player_gp = {
             player.playerId: player.stats['0']['total']['GP']
             for player in box_lineup
         }
 
+        start_list = [
+            PlayerStart(player, gid)
+            for player in team.roster
+            for gid, game in player.schedule.items()
+            if gid in matchup.matchup_period.game_day_ids
+            and game['date'] >= matchup.from_date
+            and not player.injured
+            and player.injuryStatus != 'SUSPENSION'
+        ]
+
+        self.eligible_starts: List[Lineup.EligibleStart] = [
+            self.EligibleStart(
+                start,
+                start.player.percent_owned,
+                probable_start_score(
+                    start.player.percent_owned,
+                    player_gp.get(start.player.playerId, 0),
+                ),
+            )
+            for start in start_list
+        ]
+
+        self.remaining_gp = int(
+            matchup.matchup_period.max_gp -
+            box_stats['GP']['value']
+        )
         self.set_default()
 
     def __repr__(self):
         return f'Lineup({[str(s) for s in self.lineup]})'
 
     def set_default(self) -> None:
-        sorted_starts = sorted(
-            self.eligible_starts,
-            key=lambda p: p.player.percent_started,
-            reverse=True
-        )
+        sorted_starts = [
+            es.player_start
+            for es in sorted(
+                self.eligible_starts,
+                key=lambda x: x.std_weight,
+                reverse=True,
+            )
+        ]
         self.lineup = sorted_starts[:self.remaining_gp]
 
     def set_probable(self) -> None:
-        sorted_starts = sorted(
-            self.eligible_starts,
-            key=lambda p: self._probable_start_score(p.player),
-            reverse=True
-        )
+        sorted_starts = [
+            es.player_start
+            for es in sorted(
+                self.eligible_starts,
+                key=lambda x: x.probable_weight,
+                reverse=True,
+            )
+        ]
         self.lineup = sorted_starts[:self.remaining_gp]
 
-    def set_randomly(self, min_weight=0.0) -> None:
+    def set_randomly(self, probable=False, min_w=0.0, max_w=100.0) -> None:
         if len(self.eligible_starts) <= self.remaining_gp:
-            self.lineup = self.eligible_starts
+            self.lineup = [es.player_start for es in self.eligible_starts]
             return
 
-        self.lineup = np.random.choice(
-            self.eligible_starts,
-            size=self.remaining_gp,
-            replace=False,
-            p=normalize_weights(self._es_weights, min_weight),
+        bounded_weights = [
+            max(min_w, min(max_w, es.probable_weight if probable else es.std_weight))
+            for es in self.eligible_starts
+        ]
+        self.lineup = random_draw(
+            [es.player_start for es in self.eligible_starts],
+            self.remaining_gp,
+            bounded_weights,
         )
 
-    def _probable_start_score(self, player: Player) -> float:
-        n_starts = self._player_gp.get(player.playerId, 0)
-        return (player.percent_started + n_starts) / (1 + n_starts)
+
+def probable_start_score(percent_owned: float, gp: int) -> float:
+    return (percent_owned + 100*gp) / (1 + gp)
 
 
-@lru_cache(maxsize=1000)
-def normalize_weights(weights: Tuple[float, ...], min_weight=0.0) -> Tuple[float, ...]:
-    if min_weight > 0.0:
-        weights = [max(min_weight, w) for w in weights]
-    total = sum(weights)
-    return tuple([w / total for w in weights])
+def random_draw(arr: List[Any], n: int, w_arr: List[float]) -> List[Any]:
+    total = sum(w_arr)
+    p_arr = [w / total for w in w_arr]
+    return list(np.random.choice(a=arr, size=n, replace=False, p=p_arr))

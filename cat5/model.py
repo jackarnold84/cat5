@@ -1,5 +1,5 @@
 from functools import cache
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 import numpy as np
 from espn_api.basketball.box_score import H2HCategoryBoxScore as BoxScore
@@ -22,12 +22,12 @@ class Model:
     def __init__(
         self,
         box: BoxScore,
-        home_starts: List[PlayerStart],
-        away_starts: List[PlayerStart],
+        home_starts: Iterable[PlayerStart],
+        away_starts: Iterable[PlayerStart],
     ):
         self.box = box
-        self.home_starts = home_starts
-        self.away_starts = away_starts
+        self.home_starts = tuple(home_starts)
+        self.away_starts = tuple(away_starts)
 
     @cache
     def predict_cat(self, cat: str) -> float:
@@ -126,11 +126,11 @@ class Model:
         return 1 - norm.cdf(-diff, mu_home - mu_away, np.sqrt(var_home + var_away))
 
 
-def get_proj_list(starts: List[PlayerStart], cat: str):
+def get_proj_list(starts: Iterable[PlayerStart], cat: str) -> List[float]:
     return [start.projection(cat) for start in starts]
 
 
-def skellam_cdf_continuous(k, mu1, mu2):
+def skellam_cdf_continuous(k: float, mu1: float, mu2: float) -> float:
     """
     Breaks ties (i.e. x = k) with 50-50 probability
     """
@@ -139,5 +139,5 @@ def skellam_cdf_continuous(k, mu1, mu2):
     return cdf_val - 0.5 * pmf_val
 
 
-def skellam_cdf_approx(k, mu1, mu2):
+def skellam_cdf_approx(k: float, mu1: float, mu2: float) -> float:
     return norm.cdf(k, mu1 - mu2, np.sqrt(mu1 + mu2))
