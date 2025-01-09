@@ -1,4 +1,19 @@
+# node
 node_modules/
 .cache/
 public
 package-lock.json
+
+# python
+__pycache__/
+.env
+.venv
+.coverage
+*.cover
+.DS_Store
+*.egg-info/
+
+#dev
+.vscode/
+.mock-db/
+.dev/
