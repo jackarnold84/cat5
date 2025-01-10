@@ -58,7 +58,7 @@ class Model:
         """
         cat_probs = [self.predict_cat(cat) for cat in scored_cats]
         poi_bin = PoiBin(cat_probs)
-        return 1 - poi_bin.cdf(4)
+        return float(1 - poi_bin.cdf(4))
 
     def _predict_count_cat(self, cat: str) -> float:
         """

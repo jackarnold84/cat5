@@ -1,3 +1,4 @@
+annotated-types==0.7.0
 appnope==0.1.4
 asttokens==3.0.0
 autopep8==2.3.1
@@ -30,6 +31,8 @@ psutil==6.1.1
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pycodestyle==2.12.1
+pydantic==2.10.5
+pydantic_core==2.27.2
 pyflakes==3.2.0
 Pygments==2.18.0
 python-dateutil==2.9.0.post0

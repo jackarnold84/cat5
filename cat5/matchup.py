@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, List, NamedTuple, Tuple
+from typing import Any, List, NamedTuple
 
 import numpy as np
 from espn_api.basketball import Player, Team
@@ -12,6 +12,10 @@ from .start import PlayerStart
 
 
 class Matchup:
+    class PlayerValue(NamedTuple):
+        player: Player
+        value: float
+
     def __init__(
         self,
         box: BoxScore,
@@ -31,24 +35,26 @@ class Matchup:
     def get_model(self) -> Model:
         return Model(self.box, self.home_lineup.lineup, self.away_lineup.lineup)
 
-    def optimize_home_lineup(self, n=1000) -> List[Tuple[Player, float]]:
+    def optimize_home_lineup(self, n=1000) -> List[PlayerValue]:
         return self._optimize_lineup(use_home=True, n=n)
 
-    def optimize_away_lineup(self, n=1000) -> List[Tuple[Player, float]]:
+    def optimize_away_lineup(self, n=1000) -> List[PlayerValue]:
         return self._optimize_lineup(use_home=False, n=n)
 
-    def _optimize_lineup(self, use_home: bool, n: int) -> List[Tuple[Player, float]]:
+    def _optimize_lineup(self, use_home: bool, n: int) -> List[PlayerValue]:
         lineup = self.home_lineup if use_home else self.away_lineup
 
-        best_lineup: List[PlayerStart] = []
-        best_win_p = -1.0
+        best_lineup: List[PlayerStart] = lineup.lineup
+        best_win_p = self.get_model().predict_win()
+        best_win_p = best_win_p if use_home else 1 - best_win_p
         player_id_map: defaultdict[int, Player] = defaultdict(Player)
         player_win_p: defaultdict[int, float] = defaultdict(float)
         player_count: defaultdict[int, int] = defaultdict(int)
 
         for _ in range(n):
-            lineup.set_randomly(min_w=20, max_w=80)
+            lineup.set_randomly(min_w=10, max_w=95)
             win_p = self.get_model().predict_win()
+            win_p = win_p if use_home else 1 - win_p
             for player_start in lineup.lineup:
                 pid = player_start.player.playerId
                 player_id_map[pid] = player_start.player
@@ -68,8 +74,9 @@ class Matchup:
             reverse=True,
         )
         return sorted(
-            [(player_id_map[pid], pv) for pid, pv in player_values.items()],
-            key=lambda x: x[1],
+            [self.PlayerValue(player_id_map[pid], float(pv / best_win_p))
+             for pid, pv in player_values.items()],
+            key=lambda x: (x.value, x.player.percent_owned),
             reverse=True,
         )
 
