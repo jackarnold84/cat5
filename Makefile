@@ -1,7 +1,7 @@
-PY_DIRS := cat5 processor tests
+PY_DIRS := cat5 processor tests db
 
 run:
-	python -m processor.run
+	python -m tests.e2e_test
 
 lint:
 	autopep8 --recursive --diff $(PY_DIRS)

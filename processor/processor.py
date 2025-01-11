@@ -1,5 +1,6 @@
+from dataclasses import fields, is_dataclass
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from espn_api.basketball import League, Team
 from espn_api.basketball.box_score import H2HCategoryBoxScore as BoxScore
@@ -21,14 +22,17 @@ class Processor:
         matchups = self.get_matchups()
         teams = self.get_teams()
         players = self.get_players()
-        return struct.Cat5Instance(
+        instance = struct.Cat5Instance(
             leagueId=str(self.league.league_id),
             matchupPeriod=self.matchup_period.period,
+            updateTimestamp=int(self.now.timestamp()),
             maxGP=self.matchup_period.max_gp,
             matchups=matchups,
             teams=teams,
             players=players,
         )
+        instance_rounded: struct.Cat5Instance = round_floats(instance, 4)
+        return instance_rounded
 
     def get_matchups(self) -> List[struct.Matchup]:
         matchups: List[struct.Matchup] = []
@@ -117,3 +121,17 @@ class Processor:
                     proTeam=player.proTeam,
                 )
         return dict(sorted(players.items(), key=lambda x: int(x[0])))
+
+
+def round_floats(obj: Any, ndigits: int) -> Any:
+    if is_dataclass(obj):
+        for field in fields(obj):
+            value = getattr(obj, field.name)
+            setattr(obj, field.name, round_floats(value, ndigits))
+    elif isinstance(obj, list):
+        return [round_floats(item, ndigits) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: round_floats(v, ndigits) for k, v in obj.items()}
+    elif isinstance(obj, float):
+        return round(obj, ndigits)
+    return obj

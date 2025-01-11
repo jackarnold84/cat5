@@ -55,6 +55,7 @@ class Matchup:
 class Cat5Instance:
     leagueId: str
     matchupPeriod: int
+    updateTimestamp: int
     maxGP: int
     matchups: List[Matchup]
     teams: Dict[str, Team]

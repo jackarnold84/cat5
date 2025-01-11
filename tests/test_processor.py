@@ -9,7 +9,6 @@ from espn_api.basketball import League
 from espn_api.basketball.box_score import H2HCategoryBoxScore as BoxScore
 
 from processor import Processor
-from processor.utils import CustomEncoder
 
 
 class TestModel(unittest.TestCase):
@@ -28,6 +27,7 @@ class TestModel(unittest.TestCase):
         processor.n_iter = 100
         cat5_instance = processor.build()
 
+        # property assertions
         self.assertTrue(len(cat5_instance.teams) > 0)
         self.assertTrue(
             0 < len(cat5_instance.matchups) <= len(cat5_instance.teams) // 2
@@ -35,6 +35,8 @@ class TestModel(unittest.TestCase):
         self.assertTrue(
             len(cat5_instance.players) > 8 * len(cat5_instance.teams)
         )
+        ex_float = cat5_instance.matchups[0].forecasts.default.catWin['PTS']
+        self.assertEqual(round(ex_float, 4), ex_float)
 
         for matchup in cat5_instance.matchups:
             self.assertEqual(9, len(matchup.forecasts.default.catWin))
@@ -51,12 +53,9 @@ class TestModel(unittest.TestCase):
                 matchup.forecasts.default.win,
             )
 
+        # test json serialization
         cat5_instance_dict = asdict(cat5_instance)
-        cat5_instance_json = json.dumps(
-            cat5_instance_dict,
-            cls=CustomEncoder,
-            indent=2,
-        )
+        cat5_instance_json = json.dumps(cat5_instance_dict, indent=2)
         self.assertTrue(len(cat5_instance_json) > 0)
 
 
