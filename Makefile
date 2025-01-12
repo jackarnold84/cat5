@@ -1,4 +1,4 @@
-PY_DIRS := cat5 processor tests db
+PY_DIRS := api db cat5 processor tests
 
 run:
 	python -m tests.e2e_test
