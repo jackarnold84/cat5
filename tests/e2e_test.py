@@ -1,7 +1,12 @@
+import json
 import os
 from dataclasses import asdict
+from datetime import datetime
 
-from processor.handler import LambdaPayload, handler
+from api.handler import APIGatewayEvent
+from api.handler import handler as api_handler
+from processor.handler import LambdaPayload
+from processor.handler import handler as processor_handler
 
 
 def test_e2e():
@@ -10,16 +15,31 @@ def test_e2e():
     """
     os.environ['DB_READ'] = 'MOCK'
     os.environ['DB_WRITE'] = 'MOCK'
+    test_start_timestamp = int(datetime.now().timestamp())
 
-    input_payload = LambdaPayload(
+    # processor
+    print('--- testing processor handler ---')
+    processor_event = LambdaPayload(
         tag='test',
         leagueId='501268457',
         year=2025,
     )
-    lambda_response = handler(asdict(input_payload), None)
+    processor_resp = processor_handler(asdict(processor_event), None)
+    print(processor_resp)
+    assert processor_resp['status'] == 'SUCCESS'
 
-    print(lambda_response)
-    assert lambda_response['status'] == 'SUCCESS'
+    # api
+    print('--- testing api handler ---')
+    api_event = APIGatewayEvent(
+        path='/data',
+        httpMethod='GET',
+        queryStringParameters={'tag': 'test'},
+    )
+    api_resp = api_handler(asdict(api_event), None)
+    assert api_resp['statusCode'] == 200
+    print(f'statusCode: {api_resp["statusCode"]}')
+    body_dict = json.loads(api_resp['body'])
+    assert body_dict['updateTimestamp'] >= test_start_timestamp
 
 
 if __name__ == '__main__':

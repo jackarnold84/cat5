@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, NamedTuple, Optional
 
-from db import Database
+from .db import DBReader
 
 
 class CacheItem(NamedTuple):
@@ -21,7 +21,7 @@ class APIGatewayEvent:
 
 TTL = 300  # 5 minutes
 cache: Dict[str, CacheItem] = {}
-db = Database()
+db = DBReader()
 
 
 def lambda_handler(event: Dict[str, Any], _) -> Dict[str, Any]:
@@ -39,7 +39,7 @@ def handler(event: Dict[str, Any], _) -> Dict[str, Any]:
     except Exception as e:
         return api_response(400, {'error': f'bad request: {e}'})
 
-    if api_event.path != '/read':
+    if api_event.path != '/data':
         return api_response(404, {'error': 'invalid path'})
     if api_event.httpMethod != 'GET':
         return api_response(405, {'error': 'method not allowed'})

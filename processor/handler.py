@@ -5,8 +5,7 @@ from espn_api.basketball import League
 from pydantic import ValidationError
 from pydantic.dataclasses import dataclass
 
-from db import Database
-
+from .db import DBWriter
 from .processor import Processor
 
 IN_PROGRESS = 'IN_PROGRESS'
@@ -40,7 +39,7 @@ def lambda_handler(event: Dict[str, Any], _) -> Dict[str, Any]:
 
 def handler(event: Dict[str, Any], _) -> Dict[str, Any]:
     resp = LambdaRespose(IN_PROGRESS)
-    db = Database()
+    db = DBWriter()
 
     # read event payload
     print('--> parsing event')

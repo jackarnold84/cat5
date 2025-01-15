@@ -1,4 +1,4 @@
-PY_DIRS := api db cat5 processor tests
+PY_DIRS := api cat5 processor tests
 
 run:
 	python -m tests.e2e_test
@@ -15,3 +15,8 @@ test:
 
 check: lint type-check test
 	@tput bold; tput setaf 2; echo "All checks passed"; tput sgr0
+
+clean:
+	rm -rf .aws-sam/
+	find . -type f -name '*.pyc' -delete
+	find . -type d -name '__pycache__' -exec rm -rf {} +
