@@ -12,6 +12,10 @@ __pycache__/
 *.cover
 .DS_Store
 *.egg-info/
+.mypy_cache/
+
+# aws
+.aws-sam/
 
 #dev
 .vscode/

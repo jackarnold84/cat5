@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: cat5 stack
+
+Resources:
+  Cat5Processor:
+    Type: AWS::Serverless::Function
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
+      DockerTag: latest
+    Properties:
+      FunctionName: Cat5Processor
+      PackageType: Image
+      MemorySize: 1024
+      Timeout: 60
+      Environment:
+        Variables:
+          AWS_REGION: !Ref "AWS::Region"
+          DB_WRITE: mock
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt Cat5Table.Arn
+
+  Cat5Api:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: Cat5Api
+      PackageType: Zip
+      Runtime: python3.13
+      CodeUri: .
+      Handler: api.handler.lambda_handler
+      MemorySize: 256
+      Timeout: 5
+      Environment:
+        Variables:
+          AWS_REGION: !Ref "AWS::Region"
+          DB_READ: mock
+      Layers:
+        - arn:aws:lambda:us-east-2:017000801446:layer:AWSLambdaPowertoolsPythonV3-python313-x86_64:5
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt Cat5Table.Arn
+      Events:
+        CatchAll:
+          Type: Api
+          Properties:
+            Path: /cat5/data
+            Method: GET
+
+  Cat5Table:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: Cat5Table
+      PrimaryKey:
+        Name: key
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+Outputs:
+  Cat5ProcessorFunction:
+    Description: Cat5Processor Lambda Function ARN
+    Value: !GetAtt Cat5Processor.Arn
+  Cat5APIFunction:
+    Description: Cat5API Lambda Function ARN
+    Value: !GetAtt Cat5API.Arn
+  ApiGatewayUrl:
+    Description: URL of the API Gateway
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/cat5/data/

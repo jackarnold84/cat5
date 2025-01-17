@@ -1,0 +1,10 @@
+{
+    "path": "/data",
+    "httpMethod": "GET",
+    "headers": {
+        "Content-Type": "application/json"
+    },
+    "queryStringParameters": {
+        "tag": "test"
+    }
+}

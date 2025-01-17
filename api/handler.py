@@ -1,7 +1,9 @@
-import json
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, NamedTuple, Optional
+from typing import Any, Dict, NamedTuple
+
+from aws_lambda_powertools.event_handler import (APIGatewayRestResolver,
+                                                 CORSConfig)
+from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from .db import DBReader
 
@@ -11,63 +13,37 @@ class CacheItem(NamedTuple):
     ttl: float
 
 
-@dataclass
-class APIGatewayEvent:
-    path: str
-    httpMethod: str
-    queryStringParameters: Dict[str, str] = field(default_factory=dict)
-    body: Optional[str] = None
-
-
-TTL = 300  # 5 minutes
+CACHE_TTL = 300  # 5 minutes
 cache: Dict[str, CacheItem] = {}
 db = DBReader()
 
-
-def lambda_handler(event: Dict[str, Any], _) -> Dict[str, Any]:
-    try:
-        return handler(event, _)
-    except Exception as e:
-        return api_response(500, {'error': f'unexpected error: {e}'})
+cors_config = CORSConfig(allow_origin='*')
+app = APIGatewayRestResolver(cors=cors_config)
 
 
-def handler(event: Dict[str, Any], _) -> Dict[str, Any]:
-    try:
-        api_event = APIGatewayEvent(**event)
-        tag = api_event.queryStringParameters['tag']
-        cache_param = api_event.queryStringParameters.get('cache', '')
-    except Exception as e:
-        return api_response(400, {'error': f'bad request: {e}'})
+def lambda_handler(event: dict, context: LambdaContext) -> dict:
+    return app.resolve(event, context)
 
-    if api_event.path != '/data':
-        return api_response(404, {'error': 'invalid path'})
-    if api_event.httpMethod != 'GET':
-        return api_response(405, {'error': 'method not allowed'})
+
+@app.get('/cat5/data')
+def get_data():
+    api_event = app.current_event
+    tag = api_event.get_query_string_value('tag', '')
+    cache_param = api_event.get_query_string_value('cache', '')
+    if not tag:
+        return {'error': 'missing query parameter: tag'}, 400
 
     if tag in cache and cache_param != 'none':
         item = cache[tag]
         if item.ttl > time.time():
-            return api_response(200, item.data)
+            return item.data, 200
         else:
             del cache[tag]
 
     try:
         data = db.read(tag)
-    except KeyError:
-        return api_response(404, {'error': f'not found: {tag}'})
+    except (KeyError, FileNotFoundError):
+        return {'error': f'tag not found: {tag}'}, 404
 
-    cache[tag] = CacheItem(data, time.time() + TTL)
-    return api_response(200, data)
-
-
-def api_response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        'statusCode': status_code,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'application/json',
-            'Access-Control-Allow-Methods': 'GET',
-        },
-        'body': json.dumps(body)
-    }
+    cache[tag] = CacheItem(data, time.time() + CACHE_TTL)
+    return data, 200

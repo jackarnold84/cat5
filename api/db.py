@@ -6,8 +6,8 @@ from typing import Any, Dict
 
 import boto3
 
-DYNAMO_TABLE_NAME = "MyTable"
-DYNAMO_REGION = "us-east-2"
+DYNAMO_TABLE_NAME = "Cat5Table"
+DYNAMO_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
 
 class DBReader:
