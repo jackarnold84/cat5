@@ -16,6 +16,7 @@ __pycache__/
 
 # aws
 .aws-sam/
+samconfig.toml
 
 #dev
 .vscode/

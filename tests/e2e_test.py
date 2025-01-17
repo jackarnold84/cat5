@@ -30,9 +30,9 @@ def test_e2e():
     # api
     print('--- testing api handler ---')
     api_event = {
-        'path': '/cat5/data',
+        'path': '/cat5/data/test',
         'httpMethod': 'GET',
-        'queryStringParameters': {
+        'pathParameters': {
             'tag': 'test',
         },
     }

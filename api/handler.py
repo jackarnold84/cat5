@@ -25,13 +25,10 @@ def lambda_handler(event: dict, context: LambdaContext) -> dict:
     return app.resolve(event, context)
 
 
-@app.get('/cat5/data')
-def get_data():
+@app.get('/cat5/data/<tag>')
+def get_data(tag: str):
     api_event = app.current_event
-    tag = api_event.get_query_string_value('tag', '')
     cache_param = api_event.get_query_string_value('cache', '')
-    if not tag:
-        return {'error': 'missing query parameter: tag'}, 400
 
     if tag in cache and cache_param != 'none':
         item = cache[tag]
