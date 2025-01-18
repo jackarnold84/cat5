@@ -1,0 +1,10 @@
+{
+    "path": "/cat5/data/test",
+    "httpMethod": "GET",
+    "headers": {
+        "Content-Type": "application/json"
+    },
+    "pathParameters": {
+        "tag": "test"
+    }
+}
