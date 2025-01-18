@@ -19,6 +19,7 @@ Resources:
       Environment:
         Variables:
           DB_WRITE: prod
+          TZ: America/Chicago
       Policies:
         - Statement:
             - Effect: Allow
