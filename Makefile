@@ -4,8 +4,8 @@ API_TEST_EVENT := api/events/test.json
 
 default: check
 
-run:
-	python -m tests.e2e_test
+check: lint type-check test-unit
+	@tput bold; tput setaf 2; echo "All checks passed"; tput sgr0
 
 lint:
 	autopep8 --recursive --diff $(PY_DIRS)
@@ -14,11 +14,14 @@ lint:
 type-check:
 	mypy . --ignore-missing-imports
 
-test:
+test-unit:
 	python -m unittest discover -s tests -v
 
-check: lint type-check test
-	@tput bold; tput setaf 2; echo "All checks passed"; tput sgr0
+test-integration:
+	python -m tests.integration_test
+
+test-cloud-integration:
+	python -m tests.integration_test --cloud
 
 clean:
 	rm -rf .aws-sam/

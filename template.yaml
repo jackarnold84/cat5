@@ -55,8 +55,6 @@ Resources:
           Properties:
             Path: /cat5/data/{tag}
             Method: GET
-            Auth:
-              Authorizer: NONE
 
   Cat5Table:
     Type: AWS::Serverless::SimpleTable
