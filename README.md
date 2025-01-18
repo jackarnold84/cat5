@@ -1,29 +1,57 @@
-# Gatsby Template
+# CAT5
+ESPN Fantasy Basketball H2H Categories Matchup Forecaster
 
-Template for gatsby site.
+Predict who will win each category
 
-See `package.json` for develpment commands
-- `npm run start`
-- `npm run build`
-- `npm run serve`
-- `npm run deploy` (to GitHub pages)
+Predict who will win the matchup by winning Category Number 5!
 
-## Update List
 
-Update the following to customize your app
+## Service
+Deployed to AWS using Lambda, DynamoDB, APIGateway, and EventBridge using SAM (Serverless Model).
 
-### [`package.json`](/package.json)
-- project metadata
-- delete any unnecessary dependencies
+Cloud Infra:
 
-### [`gatsby-config.js`](/gatsby-config.js)
-- metadata
-- site url + path prefix (to match GitHub repo) for deployment
-- theme + background color
-- icon path
+![Cloud Infrastructure](src/images/cat5-infra.png)
 
-### [`Layout.js`](/src/components/Layout.js)
-- Header, footer
-- Navigation menu
-- Body max width
-- Antd theme ([ConfigProvider](https://ant.design/docs/react/customize-theme))
+### Local Development
+Created with python
+
+#### Set up virtual environment:
+```sh
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+See [Makefile](Makefile) for dev commands
+
+#### Test:
+```sh
+make check
+make test-unit
+make test-integration
+make test-cloud-integration
+```
+
+#### Build and Deploy:
+Requires Docker, AWS CLI, SAM CLI
+```sh
+make sam
+make invoke-processor
+make invoke-api
+make deploy
+```
+
+
+## UI
+Created with React + Gatsby
+
+See `package.json` for development commands
+```sh
+npm run start
+npm run build
+npm run serve
+npm run deploy # to GitHub pages
+```
+
+Update [`gatsby-config.js`](/gatsby-config.js) for deployment configurations
