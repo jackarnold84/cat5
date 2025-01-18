@@ -5,14 +5,14 @@ import os
 
 import boto3
 
-DYNAMO_TABLE_NAME = "Cat5Table"
-DYNAMO_REGION = os.environ.get("AWS_REGION", "us-east-2")
+TABLE_NAME = os.environ.get("TABLE_NAME", "Cat5Table")
+AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
 
 class DBWriter:
-    dynamo = boto3.resource("dynamodb", region_name=DYNAMO_REGION)
+    dynamo = boto3.resource("dynamodb", region_name=AWS_REGION)
 
-    def __init__(self, table_name=DYNAMO_TABLE_NAME):
+    def __init__(self, table_name=TABLE_NAME):
         self.table = self.dynamo.Table(table_name)
         self.write_mock = os.environ.get('DB_WRITE', '').lower() != 'prod'
 

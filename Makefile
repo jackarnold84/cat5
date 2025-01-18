@@ -30,15 +30,18 @@ clean:
 	find . -type d -name '__pycache__' -exec rm -rf {} +
 
 sam:
+	sam validate --lint
 	sam build
 
 build-Cat5Api:
 	cp -r api $(ARTIFACTS_DIR)/api
 
-invoke-processor: sam
+invoke-processor:
+	sam build Cat5Processor
 	sam local invoke Cat5Processor --event $(PROCESSOR_TEST_EVENT) --env-vars processor/events/env.json
 
-invoke-api: sam
+invoke-api:
+	sam build Cat5Api
 	sam local invoke Cat5Api --event $(API_TEST_EVENT) --env-vars api/events/env.json
 
 serve-local: sam

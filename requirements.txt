@@ -44,6 +44,7 @@ pyzmq==26.2.0
 requests==2.32.3
 s3transfer==0.10.4
 scipy==1.14.1
+setuptools==75.8.0
 six==1.17.0
 stack-data==0.6.3
 tornado==6.4.2
