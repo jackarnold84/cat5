@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import styled from "styled-components";
 
-const Container = styled.div.attrs(({
+const Container = styled('div').withConfig({
+  shouldForwardProp: (prop) => !['centered', 'flex', 'top', 'bottom', 'size', 'width'].includes(prop),
+}).attrs(({
   size = 8, top, bottom, width, centered = false, flex = false,
 }) => ({
   size,
@@ -24,7 +26,8 @@ const Container = styled.div.attrs(({
   ${({ flex }) => flex && `
     display: flex;
   `}
-`
+`;
+
 
 Container.propTypes = {
   size: PropTypes.number,

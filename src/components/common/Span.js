@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import styled from "styled-components";
 
-const Span = styled.span.attrs(({
+const Span = styled('span').withConfig({
+  shouldForwardProp: (prop) => !['size', 'left', 'right'].includes(prop),
+}).attrs(({
   size = 4, left, right,
 }) => ({
   size,
@@ -10,7 +12,7 @@ const Span = styled.span.attrs(({
 }))`
   padding-left: ${props => props.left}px;
   padding-right: ${props => props.right}px;
-`
+`;
 
 Span.propTypes = {
   size: PropTypes.number,

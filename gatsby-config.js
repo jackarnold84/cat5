@@ -4,9 +4,9 @@
 module.exports = {
   siteMetadata: {
     title: `My Gatsby Site`,
-    siteUrl: `https://jackarnold84.github.io/gatsby-template/`
+    siteUrl: `https://jackarnold84.github.io/cat5/`
   },
-  pathPrefix: "/gatsby-template",
+  pathPrefix: "/cat5",
   plugins: [
     "gatsby-plugin-styled-components",
     {
@@ -15,8 +15,8 @@ module.exports = {
         name: "GatsbyJS",
         short_name: "GatsbyJS",
         start_url: "/",
-        background_color: "#6b37bf",
-        theme_color: "#6b37bf",
+        background_color: "#c80f2d",
+        theme_color: "#c80f2d",
         display: "standalone",
         icon: "src/images/icon.png",
       },

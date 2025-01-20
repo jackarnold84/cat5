@@ -1,4 +1,4 @@
-import { BarChartOutlined, HomeOutlined, NodeIndexOutlined } from "@ant-design/icons"
+import { HomeOutlined } from "@ant-design/icons"
 import { Button, List } from "antd"
 import { Link } from "gatsby"
 import * as React from "react"
@@ -12,8 +12,6 @@ const NavLink = styled(Link)`
 const Navigation = ({ closeMenu }) => {
   const links = [
     { to: "/", icon: <HomeOutlined />, text: "Home" },
-    { to: "/plot", icon: <BarChartOutlined />, text: "Plotly" },
-    { to: "/api", icon: <NodeIndexOutlined />, text: "API" },
   ]
 
   return (
