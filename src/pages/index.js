@@ -1,93 +1,53 @@
-import { TruckOutlined } from "@ant-design/icons"
-import { Button, Form, Input, Radio, Table } from "antd"
+import { Button, List } from "antd"
+import { Link } from "gatsby"
 import * as React from "react"
+import { BiBasketball } from "react-icons/bi"
 import styled from "styled-components"
 import Layout from "../components/Layout"
 import Container from "../components/common/Container"
-import Span from "../components/common/Span"
+import logo from "../images/logo.png"
 
-const SectionHeader = styled.h3`
-  text-align: center;
-  padding-top: 8px;
-  padding-bottom: 16px;
+const NavLink = styled(Link)`
+  margin: auto;
+  width: 100%;
 `
 
 const IndexPage = () => {
-  const [tab, setTab] = React.useState('apple')
+  const links = [
+    { to: "/forecast?tag=demon", icon: <BiBasketball />, text: "Demon League" },
+  ]
 
   return (
     <Layout>
-      <Container size={16} centered>
-        <h2>Gatsby Template</h2>
-        <p>Starter template for Gatsby projects with various reusable components</p>
-      </Container>
-
-
-      <Container size={16} width={400}>
-        <SectionHeader>Sign In Form</SectionHeader>
-        <Form
-          onFinish={(values) => { console.log(values) }}
-          autoComplete="off"
-          layout="vertical"
-        >
-          <Form.Item label="Username" name="username" rules={[{ required: true }]} >
-            <Input />
-          </Form.Item>
-          <Form.Item label="Password" name="password" rules={[{ required: true }]} >
-            <Input.Password />
-          </Form.Item>
-          <Container centered>
-            <Form.Item>
-              <Button type="primary" htmlType="submit">Submit</Button>
-            </Form.Item>
-          </Container>
-        </Form>
-      </Container>
-
-      <Container size={16} width={500}>
-        <SectionHeader>Statistics</SectionHeader>
-        <Table
-          columns={[
-            { title: 'Brand', dataIndex: 'brand', key: 'brand' },
-            { title: 'Model', dataIndex: 'model', key: 'model' },
-            { title: 'Loft', dataIndex: 'loft', key: 'loft', sorter: (a, b) => a.loft - b.loft },
-          ]}
-          dataSource={[
-            { key: 1, brand: 'Titleist', model: '775CB', loft: 37 },
-            { key: 2, brand: 'Mizuno', model: 'JPX923 Hot Metal', loft: 33 },
-            { key: 3, brand: 'Ping', model: 'G425', loft: 34.5 },
-            { key: 4, brand: 'Taylormade', model: 'Stealth', loft: 32 },
-          ]}
-          size="small"
-          pagination={false}
+      <Container centered>
+        <img
+          src={logo}
+          alt="CAT5 Logo"
+          width={200}
+          height={200}
         />
       </Container>
+      <Container size={16} centered>
+        <h4>Who will win category number 5?</h4>
+      </Container>
 
-      <Container size={16} width={500}>
-        <SectionHeader>Tabs</SectionHeader>
+      <Container size={16} width={400}>
         <Container centered>
-          <Radio.Group
-            options={[
-              { label: 'Apple', value: 'apple' },
-              { label: 'Pear', value: 'pear' },
-              { label: 'Orange', value: 'orange' }
-            ]}
-            optionType="button"
-            buttonStyle="solid"
-            value={tab}
-            onChange={({ target }) => { setTab(target.value) }}
-          />
+          <h3>Leagues</h3>
         </Container>
-
-        <Container centered>
-          <Span>
-            <TruckOutlined />
-          </Span>
-          <Span>
-            Truck full of {tab}s
-          </Span>
-        </Container>
-
+        <List
+          size="small"
+          dataSource={links}
+          renderItem={item => (
+            <List.Item>
+              <NavLink to={item.to}>
+                <Button type="default" icon={item.icon} size="large" block >
+                  {item.text}
+                </Button>
+              </NavLink>
+            </List.Item>
+          )}
+        />
       </Container>
     </Layout>
   )
@@ -95,4 +55,4 @@ const IndexPage = () => {
 
 export default IndexPage
 
-export const Head = () => <title>Home Page</title>
+export const Head = () => <title>CAT5 - Home</title>

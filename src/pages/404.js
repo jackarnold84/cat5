@@ -1,4 +1,5 @@
 import { Button } from "antd"
+import { Link } from "gatsby"
 import * as React from "react"
 import styled from "styled-components"
 import Layout from "../components/Layout"
@@ -15,7 +16,9 @@ const NotFoundPage = () => {
       <Container size={16}>
         <PageHeading>Page Not Found</PageHeading>
         <Container centered>
-          <Button type="primary" href="/">Home</Button>
+          <Link to="/">
+            <Button type="primary">Home</Button>
+          </Link>
         </Container>
       </Container>
     </Layout>

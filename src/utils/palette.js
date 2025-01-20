@@ -1,4 +1,4 @@
 export const palette = {
-  primary: '#6b37bf',
-  purple: '#6b37bf',
+  primary: '#c80f2d',
+  red: '#c80f2d',
 }

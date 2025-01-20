@@ -76,7 +76,7 @@ const Layout = ({ children }) => {
                 <Button type="primary" icon={<MenuOutlined />} onClick={showMenu} />
               </MenuButtonHolder>
               <Link to="/" className="plain-link white-text">
-                <h3>Gatsby Template</h3>
+                <h3>CAT5</h3>
               </Link>
             </HeaderContent>
           </Header>
@@ -97,7 +97,7 @@ const Layout = ({ children }) => {
                 size="small"
                 style={{ color: "white", fontSize: "14px", textDecoration: "none" }}
                 icon={<BiLogoGithub />}
-                href="https://github.com/jackarnold84/gatsby-template"
+                href="https://github.com/jackarnold84/cat5"
               >
                 Github
               </Button>
@@ -106,7 +106,7 @@ const Layout = ({ children }) => {
         </Footer>
       </ConfigProvider>
 
-      <Drawer title="Gatsby Template" onClose={closeMenu} open={openMenu} placement="top">
+      <Drawer title="CAT5" onClose={closeMenu} open={openMenu} placement="top">
         <Navigation closeMenu={closeMenu} />
       </Drawer >
     </>
