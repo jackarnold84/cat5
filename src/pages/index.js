@@ -5,7 +5,7 @@ import { BiBasketball } from "react-icons/bi"
 import styled from "styled-components"
 import Layout from "../components/Layout"
 import Container from "../components/common/Container"
-import logo from "../images/icon.png"
+import logo from "../images/logo.png"
 
 const NavLink = styled(Link)`
   margin: auto;
