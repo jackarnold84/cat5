@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 from espn_api.basketball import League, Team
 from espn_api.basketball.box_score import H2HCategoryBoxScore as BoxScore
 
-from cat5 import Matchup, MatchupPeriod
+from cat5 import EmptyStart, Matchup, MatchupPeriod
 
 from . import struct
 
@@ -16,7 +16,7 @@ class Processor:
         self.box_scores = box_scores
         self.matchup_period = MatchupPeriod(league)
         self.now = datetime.now()
-        self.n_iter = 1000
+        self.n_iter = 10000
 
     def build(self) -> struct.Cat5Instance:
         matchups = self.get_matchups()
@@ -113,8 +113,9 @@ class Processor:
 
     def get_players(self) -> Dict[str, struct.Player]:
         players: Dict[str, struct.Player] = {}
+        empty_player = EmptyStart.EmptyPlayer()
         for team in self.league.teams:
-            for player in team.roster:
+            for player in [*team.roster, empty_player]:
                 players[str(player.playerId)] = struct.Player(
                     name=player.name,
                     pos=player.position,

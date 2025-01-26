@@ -18,6 +18,7 @@ class LambdaPayload:
     tag: str
     leagueId: str
     year: int
+    iter: Optional[int] = None
 
 
 @dataclass
@@ -63,6 +64,8 @@ def handler(event: Dict[str, Any], _) -> Dict[str, Any]:
     # process cat5 data
     print('--> running cat5 processor')
     processor = Processor(league, box_scores)
+    if lambda_payload.iter:
+        processor.n_iter = lambda_payload.iter
     cat5_instance = processor.build()
     cat5_instance_dict = asdict(cat5_instance)
 

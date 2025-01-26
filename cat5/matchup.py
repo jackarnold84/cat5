@@ -8,7 +8,7 @@ from espn_api.basketball.box_score import H2HCategoryBoxScore as BoxScore
 
 from .model import Model
 from .period import MatchupPeriod
-from .start import PlayerStart
+from .start import EmptyStart, PlayerStart
 
 
 class Matchup:
@@ -47,6 +47,7 @@ class Matchup:
         best_lineup: List[PlayerStart] = lineup.lineup
         best_win_p = self.get_model().predict_win()
         best_win_p = best_win_p if use_home else 1 - best_win_p
+        worst_win_p = 1 - best_win_p
         player_id_map: defaultdict[int, Player] = defaultdict(Player)
         player_win_p: defaultdict[int, float] = defaultdict(float)
         player_count: defaultdict[int, int] = defaultdict(int)
@@ -63,6 +64,8 @@ class Matchup:
             if win_p > best_win_p:
                 best_win_p = win_p
                 best_lineup = lineup.lineup
+            if win_p < worst_win_p:
+                worst_win_p = win_p
 
         player_values = {
             pid: player_win_p[pid] / player_count[pid]
@@ -74,8 +77,14 @@ class Matchup:
             reverse=True,
         )
         return sorted(
-            [self.PlayerValue(player_id_map[pid], float(pv / best_win_p))
-             for pid, pv in player_values.items()],
+            [
+                self.PlayerValue(
+                    player_id_map[pid],
+                    float((pv - worst_win_p) / (best_win_p - worst_win_p))
+                    if best_win_p > worst_win_p else 1.0,
+                )
+                for pid, pv in player_values.items()
+            ],
             key=lambda x: (x.value, x.player.percent_owned),
             reverse=True,
         )
@@ -127,6 +136,9 @@ class Lineup:
             )
             for start in start_list
         ]
+        self.eligible_starts += [
+            self.EligibleStart(EmptyStart(), 0.0, 0.0)
+        ] * 2
 
         self.remaining_gp = int(
             matchup.matchup_period.max_gp -

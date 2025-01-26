@@ -1,7 +1,7 @@
 from .matchup import Lineup, Matchup
 from .model import Model
 from .period import MatchupPeriod
-from .start import PlayerStart
+from .start import EmptyStart, PlayerStart
 
 __all__ = [
     'Matchup',
@@ -9,4 +9,5 @@ __all__ = [
     'MatchupPeriod',
     'Model',
     'PlayerStart',
+    'EmptyStart',
 ]
