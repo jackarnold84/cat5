@@ -138,7 +138,7 @@ class Lineup:
         ]
         self.eligible_starts += [
             self.EligibleStart(EmptyStart(), 0.0, 0.0)
-        ] * 2
+        ]
 
         self.remaining_gp = int(
             matchup.matchup_period.max_gp -

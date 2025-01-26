@@ -16,7 +16,7 @@ class Processor:
         self.box_scores = box_scores
         self.matchup_period = MatchupPeriod(league)
         self.now = datetime.now()
-        self.n_iter = 10000
+        self.n_iter = 2000
 
     def build(self) -> struct.Cat5Instance:
         matchups = self.get_matchups()
