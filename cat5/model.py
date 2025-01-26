@@ -58,7 +58,7 @@ class Model:
         """
         cat_probs = [self.predict_cat(cat) for cat in scored_cats]
         poi_bin = PoiBin(cat_probs)
-        return float(1 - poi_bin.cdf(4))
+        return max(float(1 - poi_bin.cdf(4)), 0.0)
 
     def _predict_count_cat(self, cat: str) -> float:
         """
@@ -123,7 +123,9 @@ class Model:
             for att, ratio in zip(away_starts_att, away_starts_ratio)
         ]) / (away_att_total ** 2)
 
-        return 1 - norm.cdf(-diff, mu_home - mu_away, np.sqrt(var_home + var_away))
+        return 1 - norm.cdf(
+            -diff, mu_home - mu_away, max(np.sqrt(var_home + var_away), 1e-9)
+        )
 
 
 def get_proj_list(starts: Iterable[PlayerStart], cat: str) -> List[float]:
@@ -134,10 +136,12 @@ def skellam_cdf_continuous(k: float, mu1: float, mu2: float) -> float:
     """
     Breaks ties (i.e. x = k) with 50-50 probability
     """
+    mu1 = max(mu1, 1e-9)
+    mu2 = max(mu2, 1e-9)
     cdf_val = skellam.cdf(k, mu1, mu2)
     pmf_val = skellam.pmf(k, mu1, mu2)
     return cdf_val - 0.5 * pmf_val
 
 
 def skellam_cdf_approx(k: float, mu1: float, mu2: float) -> float:
-    return norm.cdf(k, mu1 - mu2, np.sqrt(mu1 + mu2))
+    return norm.cdf(k, mu1 - mu2, max(np.sqrt(mu1 + mu2), 1e-9))
