@@ -68,7 +68,8 @@ class EmptyStart(PlayerStart):
     def __init__(self):
         self.player = self.EmptyPlayer()
 
-    def projection(self, cat: str) -> float:
+    @cache
+    def projection(self, _: str) -> float:
         return 0.0
 
 
