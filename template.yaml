@@ -12,8 +12,8 @@ Resources:
     Properties:
       FunctionName: Cat5Processor
       PackageType: Image
-      MemorySize: 1024
-      Timeout: 60
+      MemorySize: 1280
+      Timeout: 90
       Architectures:
         - arm64
       Environment:
