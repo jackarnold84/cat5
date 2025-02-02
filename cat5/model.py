@@ -136,8 +136,8 @@ def skellam_cdf_continuous(k: float, mu1: float, mu2: float) -> float:
     """
     Breaks ties (i.e. x = k) with 50-50 probability
     """
-    mu1 = max(mu1, 1e-9)
-    mu2 = max(mu2, 1e-9)
+    mu1 = max(mu1, 1e-6)
+    mu2 = max(mu2, 1e-6)
     cdf_val = skellam.cdf(k, mu1, mu2)
     pmf_val = skellam.pmf(k, mu1, mu2)
     return cdf_val - 0.5 * pmf_val
