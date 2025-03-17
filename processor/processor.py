@@ -37,6 +37,10 @@ class Processor:
     def get_matchups(self) -> List[struct.Matchup]:
         matchups: List[struct.Matchup] = []
         for box in self.box_scores:
+            if not box.away_team:
+                print(f'{box.home_team} has a BYE')
+                continue
+
             matchup = Matchup(box, self.matchup_period, self.now)
             home_team: Team = box.home_team
             away_team: Team = box.away_team
