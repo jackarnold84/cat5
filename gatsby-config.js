@@ -4,9 +4,8 @@
 module.exports = {
   siteMetadata: {
     title: `My Gatsby Site`,
-    siteUrl: `https://jackarnold84.github.io/cat5/`
+    siteUrl: `https://cat5.jarno.site`
   },
-  pathPrefix: "/cat5",
   plugins: [
     "gatsby-plugin-styled-components",
     {
