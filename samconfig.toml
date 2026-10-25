@@ -1,0 +1,7 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "cat5-stack"
+resolve_s3 = true
+s3_prefix = "cat5-stack"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"

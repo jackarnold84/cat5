@@ -23,7 +23,7 @@ class Cat5Stack:
 
 class Cat5CloudStack(Cat5Stack):
     def __init__(self):
-        self.processor_lambda_name = 'Cat5Processor'
+        self.processor_lambda_name = 'Cat5ProcessorZip'
         self.api_lambda_name = 'Cat5Api'
         self.lambda_client = boto3.client(
             'lambda',
@@ -60,7 +60,8 @@ def integration_test(stack: Cat5Stack):
     processor_event = LambdaPayload(
         tag='test',
         leagueId='501268457',
-        year=2025,
+        year=2025,  # Public historical season; 2027 currently returns ESPN 401.
+        iter=1,
     )
     processor_resp = stack.processor_lambda(asdict(processor_event))
     print(f'processor_resp: {processor_resp}')

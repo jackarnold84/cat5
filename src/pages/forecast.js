@@ -18,8 +18,9 @@ const ApiPage = ({ location }) => {
   // call API
   const [isReady, setIsReady] = React.useState(false)
   const [isError, setIsError] = React.useState(false)
-  const [cat5Data, setCat5Data] = React.useState([{}])
+  const [cat5Data, setCat5Data] = React.useState(null)
   React.useEffect(() => {
+    if (!config.leagues[tag]) return
     const url = `${API_ENDPOINT}${tag}`
     fetch(url,
       {
@@ -79,6 +80,12 @@ const ApiPage = ({ location }) => {
         <Container>
           <Skeleton active />
         </Container>
+      ) : cat5Data.year !== config.leagues[tag].year ? (
+        <Container centered>
+          <div>The {config.leagues[tag].year - 1}–{String(config.leagues[tag].year).slice(-2)} forecast is not available yet.</div>
+        </Container>
+      ) : cat5Data.matchups.length === 0 ? (
+        <Container centered><div>No active matchups are available.</div></Container>
       ) : (
         <Forecast cat5Data={cat5Data} />
       )}

@@ -24,6 +24,7 @@ class Processor:
         players = self.get_players()
         instance = struct.Cat5Instance(
             leagueId=str(self.league.league_id),
+            year=self.league.year,
             matchupPeriod=self.matchup_period.period,
             updateTimestamp=int(self.now.timestamp()),
             maxGP=self.matchup_period.max_gp,

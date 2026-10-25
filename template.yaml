@@ -6,12 +6,14 @@ Resources:
   Cat5Processor:
     Type: AWS::Serverless::Function
     Metadata:
-      Dockerfile: Dockerfile
-      DockerContext: .
-      DockerTag: latest
+      BuildMethod: makefile
     Properties:
-      FunctionName: Cat5Processor
-      PackageType: Image
+      # A new name lets CloudFormation replace the former image Lambda safely.
+      FunctionName: Cat5ProcessorZip
+      PackageType: Zip
+      Runtime: python3.13
+      CodeUri: .sam-source/processor
+      Handler: processor.handler.lambda_handler
       MemorySize: 1280
       Timeout: 90
       Architectures:
@@ -21,19 +23,25 @@ Resources:
           DB_WRITE: prod
           TABLE_NAME: !Ref Cat5Table
           TZ: America/Chicago
+          ESPN_AUTH_PARAMETER: /cat5/espn-auth
       Policies:
         - Statement:
             - Effect: Allow
               Action:
                 - dynamodb:PutItem
               Resource: !GetAtt Cat5Table.Arn
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cat5/espn-auth
       Events:
         ScheduleDemon:
           Type: Schedule
           Properties:
             Name: ScheduleDemon
+            Enabled: true
             Schedule: cron(0 12 ? * * *)
-            Input: '{"tag": "demon", "leagueId": "501268457", "year": 2025}'
+            Input: '{"tag": "demon", "leagueId": "501268457", "year": 2027}'
 
   Cat5Api:
     Type: AWS::Serverless::Function
@@ -43,7 +51,7 @@ Resources:
       FunctionName: Cat5Api
       PackageType: Zip
       Runtime: python3.13
-      CodeUri: .
+      CodeUri: .sam-source/api
       Handler: api.handler.lambda_handler
       MemorySize: 256
       Timeout: 5

@@ -54,6 +54,7 @@ class Matchup:
 @dataclass
 class Cat5Instance:
     leagueId: str
+    year: int
     matchupPeriod: int
     updateTimestamp: int
     maxGP: int

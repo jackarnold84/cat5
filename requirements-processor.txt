@@ -1,0 +1,5 @@
+boto3==1.35.97
+espn_api @ https://github.com/jackarnold84/espn-api/archive/75a461c4acb5ab647a67b688526bcc4788ead657.zip
+numpy==2.2.1
+pydantic==2.10.5
+scipy==1.14.1

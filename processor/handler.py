@@ -2,10 +2,12 @@ from dataclasses import asdict
 from typing import Any, Dict, Optional
 
 from espn_api.basketball import League
+from espn_api.requests.espn_requests import ESPNAccessDenied
 from pydantic import ValidationError
 from pydantic.dataclasses import dataclass
 
 from .db import DBWriter
+from .espn_auth import league_credentials
 from .processor import Processor
 
 IN_PROGRESS = 'IN_PROGRESS'
@@ -58,8 +60,16 @@ def handler(event: Dict[str, Any], _) -> Dict[str, Any]:
 
     # fetch espn league
     print('--> fetching league from espn')
-    league = League(lambda_payload.leagueId, lambda_payload.year)
-    box_scores = league.box_scores()
+    try:
+        league = League(
+            lambda_payload.leagueId,
+            lambda_payload.year,
+            **league_credentials(),
+        )
+        box_scores = league.box_scores()
+    except ESPNAccessDenied:
+        # The pinned ESPN library includes cookie values in its exception.
+        raise RuntimeError('ESPN denied access; check the private league cookies') from None
 
     # process cat5 data
     print('--> running cat5 processor')

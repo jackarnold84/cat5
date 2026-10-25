@@ -52,6 +52,14 @@ class Matchup:
         player_win_p: defaultdict[int, float] = defaultdict(float)
         player_count: defaultdict[int, int] = defaultdict(int)
 
+        # The best lineup may remain the starting lineup. Include its players
+        # even if a short optimization run never draws them randomly.
+        for player_start in best_lineup:
+            pid = player_start.player.playerId
+            player_id_map[pid] = player_start.player
+            player_win_p[pid] += best_win_p
+            player_count[pid] += 1
+
         for _ in range(n):
             lineup.set_randomly(min_w=10, max_w=95)
             win_p = self.get_model().predict_win()
