@@ -1,11 +1,10 @@
 from functools import cache
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, NamedTuple
 
 import numpy as np
 from espn_api.basketball.box_score import H2HCategoryBoxScore as BoxScore
-from scipy.stats import norm, skellam
+from scipy.stats import norm, poisson, skellam
 
-from .poibin import PoiBin
 from .start import PlayerStart
 
 scored_cats = ['FG%', 'FT%', '3PM', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PTS']
@@ -16,6 +15,23 @@ ratio_to_count_cats = {
     'FG%': ('FGA', 'FGM'),
     'FT%': ('FTA', 'FTM'),
 }
+
+
+class Outcome(NamedTuple):
+    home: float
+    away: float
+    tie: float
+
+
+def outcome(home: float, away: float, tie: float) -> Outcome:
+    """Remove floating-point drift while retaining small tail probabilities."""
+    values = [max(0.0, min(1.0, float(p))) for p in (home, away, tie)]
+    total = sum(values)
+    return Outcome(*(p / total for p in values))
+
+
+def settled_outcome(home: float, away: float) -> Outcome:
+    return Outcome(float(home > away), float(home < away), float(home == away))
 
 
 class Model:
@@ -30,118 +46,97 @@ class Model:
         self.away_starts = tuple(away_starts)
 
     @cache
-    def predict_cat(self, cat: str) -> float:
-        """
-        Give the probability that the home team will win the specified
-        category in the matchup
-        """
+    def predict_cat_outcome(self, cat: str) -> Outcome:
+        """Return strict home/away win and tie probabilities for a category."""
         if cat in count_cats:
-            p = self._predict_count_cat(cat)
+            result = self._predict_count_cat(cat)
         elif cat in ratio_cats:
-            p = self._predict_ratio_cat(cat)
+            result = self._predict_ratio_cat(cat)
         else:
             raise ValueError(f'Invalid category: {cat}')
+        if cat in negative_cats:
+            return Outcome(result.away, result.home, result.tie)
+        return result
 
-        p = float(p)
-        return 1 - p if cat in negative_cats else p
+    def predict_cat(self, cat: str) -> float:
+        return self.predict_cat_outcome(cat).home
 
     def predict_cats(self) -> Dict[str, float]:
-        """
-        Returns a dictionary with predict_cat() results for each category
-        """
         return {cat: self.predict_cat(cat) for cat in scored_cats}
 
+    def predict_cat_outcomes(self) -> Dict[str, Outcome]:
+        return {cat: self.predict_cat_outcome(cat) for cat in scored_cats}
+
+    @cache
+    def predict_outcome(self) -> Outcome:
+        """Convolve independent category outcomes over the category-win margin."""
+        margins = np.array([1.0])
+        for cat in scored_cats:
+            result = self.predict_cat_outcome(cat)
+            margins = np.convolve(
+                margins, [result.away, result.tie, result.home])
+        center = len(scored_cats)
+        return outcome(sum(margins[center + 1:]), sum(margins[:center]), margins[center])
+
     def predict_win(self) -> float:
-        """
-        Give the probability that the home team will win the matchup by
-        winning 5+ of the 9 scored categories
-        """
-        cat_probs = [self.predict_cat(cat) for cat in scored_cats]
-        poi_bin = PoiBin(cat_probs)
-        return max(float(1 - poi_bin.cdf(4)), 0.0)
+        """Probability that home wins more categories than away."""
+        return self.predict_outcome().home
 
-    def _predict_count_cat(self, cat: str) -> float:
-        """
-        Player count categories are assumed to follow a Poisson
-        distribution. The total difference is calculated using
-        a Skellam distribution.
-        """
-        home_curr_count = self.box.home_stats[cat]['value']
-        away_curr_count = self.box.away_stats[cat]['value']
-        diff = home_curr_count - away_curr_count
+    def _predict_count_cat(self, cat: str) -> Outcome:
+        """Independent Poisson totals give a discrete Skellam difference."""
+        diff = self.box.home_stats[cat]['value'] - \
+            self.box.away_stats[cat]['value']
+        mu_home = sum(get_proj_list(self.home_starts, cat))
+        mu_away = sum(get_proj_list(self.away_starts, cat))
 
-        home_starts = get_proj_list(self.home_starts, cat)
-        away_starts = get_proj_list(self.away_starts, cat)
+        if mu_home == 0 and mu_away == 0:
+            return settled_outcome(diff, 0)
+        if mu_away == 0:
+            return outcome(poisson.sf(-diff, mu_home),
+                           poisson.cdf(-diff - 1, mu_home),
+                           poisson.pmf(-diff, mu_home))
+        if mu_home == 0:
+            return outcome(poisson.cdf(diff - 1, mu_away),
+                           poisson.sf(diff, mu_away),
+                           poisson.pmf(diff, mu_away))
+        return outcome(skellam.sf(-diff, mu_home, mu_away),
+                       skellam.cdf(-diff - 1, mu_home, mu_away),
+                       skellam.pmf(-diff, mu_home, mu_away))
 
-        mu_home = sum(home_starts)
-        mu_away = sum(away_starts)
+    def _predict_ratio_cat(self, cat: str) -> Outcome:
+        """Keep the weighted normal approximation for uncertain shooting.
 
-        if mu_home > 10 and mu_away > 10:
-            return 1 - skellam_cdf_approx(-diff, mu_home, mu_away)
-        else:
-            return 1 - skellam_cdf_continuous(-diff, mu_home, mu_away)
-
-    def _predict_ratio_cat(self, cat: str) -> float:
-        """
-        Calculated using the sum of player ratios weigted by the
-        proportion of attempts. Individual player ratios assume a
-        binomial distribution approximated by a normal distribution.
+        Continuous outcomes have no tie mass. Deterministic results are compared
+        directly, including completed ratios with different attempt totals.
         """
         att_cat, make_cat = ratio_to_count_cats[cat]
+        totals = []
+        makes = []
+        variances = []
+        for stats, starts in ((self.box.home_stats, self.home_starts),
+                              (self.box.away_stats, self.away_starts)):
+            attempts = get_proj_list(starts, att_cat)
+            ratios = get_proj_list(starts, cat)
+            total = stats[att_cat]['value'] + sum(attempts)
+            make = stats[make_cat]['value'] + sum(
+                att * ratio for att, ratio in zip(attempts, ratios)
+            )
+            totals.append(total)
+            makes.append(make)
+            variances.append(sum(
+                att * ratio * (1 - ratio) for att, ratio in zip(attempts, ratios)
+            ) / total ** 2 if total else 0.0)
 
-        home_curr_att = self.box.home_stats[att_cat]['value']
-        away_curr_att = self.box.away_stats[att_cat]['value']
-        home_curr_make = self.box.home_stats[make_cat]['value']
-        away_curr_make = self.box.away_stats[make_cat]['value']
-
-        home_starts_att = get_proj_list(self.home_starts, att_cat)
-        away_starts_att = get_proj_list(self.away_starts, att_cat)
-        home_starts_ratio = get_proj_list(self.home_starts, cat)
-        away_starts_ratio = get_proj_list(self.away_starts, cat)
-
-        home_att_total = home_curr_att + sum(home_starts_att)
-        away_att_total = away_curr_att + sum(away_starts_att)
-
-        home_curr_score = home_curr_make / home_att_total
-        away_curr_score = away_curr_make / away_att_total
-        diff = home_curr_score - away_curr_score
-
-        mu_home = sum([
-            (att / home_att_total) * ratio
-            for att, ratio in zip(home_starts_att, home_starts_ratio)
-        ])
-        mu_away = sum([
-            (att / away_att_total) * ratio
-            for att, ratio in zip(away_starts_att, away_starts_ratio)
-        ])
-        var_home = sum([
-            att * ratio * (1 - ratio)
-            for att, ratio in zip(home_starts_att, home_starts_ratio)
-        ]) / (home_att_total ** 2)
-        var_away = sum([
-            att * ratio * (1 - ratio)
-            for att, ratio in zip(away_starts_att, away_starts_ratio)
-        ]) / (away_att_total ** 2)
-
-        return 1 - norm.cdf(
-            -diff, mu_home - mu_away, max(np.sqrt(var_home + var_away), 1e-9)
-        )
+        # A team with no attempts has a shooting percentage of zero.
+        denominators = [total if total else 1 for total in totals]
+        variance = sum(variances)
+        if variance == 0:
+            return settled_outcome(makes[0] * denominators[1],
+                                   makes[1] * denominators[0])
+        diff = makes[0] / denominators[0] - makes[1] / denominators[1]
+        std = np.sqrt(variance)
+        return outcome(norm.sf(0, diff, std), norm.cdf(0, diff, std), 0.0)
 
 
 def get_proj_list(starts: Iterable[PlayerStart], cat: str) -> List[float]:
     return [start.projection(cat) for start in starts]
-
-
-def skellam_cdf_continuous(k: float, mu1: float, mu2: float) -> float:
-    """
-    Breaks ties (i.e. x = k) with 50-50 probability
-    """
-    mu1 = max(mu1, 1e-6)
-    mu2 = max(mu2, 1e-6)
-    cdf_val = skellam.cdf(k, mu1, mu2)
-    pmf_val = skellam.pmf(k, mu1, mu2)
-    return cdf_val - 0.5 * pmf_val
-
-
-def skellam_cdf_approx(k: float, mu1: float, mu2: float) -> float:
-    return norm.cdf(k, mu1 - mu2, max(np.sqrt(mu1 + mu2), 1e-9))

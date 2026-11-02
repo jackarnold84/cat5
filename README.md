@@ -3,7 +3,16 @@ ESPN Fantasy Basketball H2H Categories Matchup Forecaster
 
 Predict who will win each category
 
-Predict who will win the matchup by winning Category Number 5!
+Predict who will win the matchup by winning the most categories. Categories and overall matchups can end in ties.
+
+Forecasts include outright home-win probabilities (`win`, `catWin`) and tie
+probabilities (`tie`, `catTie`). Away wins are `1 - home - tie`. Counting
+categories model ties explicitly; uncertain FG% and FT% retain a continuous
+approximation with zero estimated tie probability, while settled shooting
+results can tie. Best lineups maximize the selected team’s outright win chance.
+
+When deploying this change, deploy the processor and refresh stored forecasts
+before publishing the UI. Older forecasts display “Tie unavailable” until refreshed.
 
 https://cat5.jarno.site/
 
