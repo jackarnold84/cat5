@@ -52,6 +52,9 @@ class Processor:
             default_forecast = struct.Forecast(
                 win=model.predict_win(),
                 catWin=model.predict_cats(),
+                tie=model.predict_outcome().tie,
+                catTie={cat: result.tie for cat,
+                        result in model.predict_cat_outcomes().items()},
             )
 
             matchup.home_lineup.set_probable()
@@ -61,6 +64,9 @@ class Processor:
             home_opt_forecast = struct.Forecast(
                 win=model.predict_win(),
                 catWin=model.predict_cats(),
+                tie=model.predict_outcome().tie,
+                catTie={cat: result.tie for cat,
+                        result in model.predict_cat_outcomes().items()},
             )
 
             matchup.home_lineup.set_probable()
@@ -70,6 +76,9 @@ class Processor:
             away_opt_forecast = struct.Forecast(
                 win=model.predict_win(),
                 catWin=model.predict_cats(),
+                tie=model.predict_outcome().tie,
+                catTie={cat: result.tie for cat,
+                        result in model.predict_cat_outcomes().items()},
             )
 
             matchups.append(

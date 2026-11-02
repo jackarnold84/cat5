@@ -5,6 +5,8 @@ import { timeSince } from "../utils/display";
 import Container from "./common/Container";
 
 const formatP = (p) => {
+  if (p === 0) return '0.0%';
+  if (p === 1) return '100.0%';
   const percentage = (p * 100).toFixed(1);
   if (percentage === '100.0') {
     return '>99.9%';
@@ -94,6 +96,16 @@ const Forecast = ({ cat5Data }) => {
       dataIndex: 'cat',
       key: 'cat',
       align: 'center',
+      render: (_, record) => (
+        <>
+          <div>{record.cat}</div>
+          {record.key !== 'GP' && (
+            <div className="tie-probability">
+              {typeof record.tie === 'number' ? `Tie ${formatP(record.tie)}` : 'Tie unavailable'}
+            </div>
+          )}
+        </>
+      ),
       width: '30%',
     },
     {
@@ -116,13 +128,15 @@ const Forecast = ({ cat5Data }) => {
     key: cat,
     cat: cat,
     home: winP,
-    away: 1 - winP,
+    tie: forecast.catTie?.[cat],
+    away: Math.max(0, Math.min(1, 1 - winP - (forecast.catTie?.[cat] ?? 0))),
   }))
   catTableDataSource.push({
     key: 'OVR',
     cat: 'OVR',
     home: forecast.win,
-    away: 1 - forecast.win,
+    tie: forecast.tie,
+    away: Math.max(0, Math.min(1, 1 - forecast.win - (forecast.tie ?? 0))),
   })
   catTableDataSource.push({
     key: 'GP',
@@ -182,6 +196,9 @@ const Forecast = ({ cat5Data }) => {
           size="small"
           rowClassName={(record) => record.key === 'OVR' ? 'highlight-row' : ''}
         />
+        <p className="forecast-explanation">
+          Win more categories to win the matchup. Equal category wins are a tie.
+        </p>
         <Container size={20}>
           <Radio.Group
             value={selectedRadio}

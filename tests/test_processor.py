@@ -39,19 +39,25 @@ class TestModel(unittest.TestCase):
         self.assertEqual(round(ex_float, 4), ex_float)
 
         for matchup in cat5_instance.matchups:
-            self.assertEqual(9, len(matchup.forecasts.default.catWin))
-            self.assertTrue(0 <= matchup.forecasts.default.win <= 1)
-            for p in matchup.forecasts.default.catWin.values():
-                self.assertTrue(0 <= p <= 1)
+            for forecast in (matchup.forecasts.default, matchup.forecasts.homeOptimized,
+                             matchup.forecasts.awayOptimized):
+                self.assertEqual(9, len(forecast.catWin))
+                self.assertEqual(set(forecast.catWin), set(forecast.catTie))
+                for home, tie in [(forecast.win, forecast.tie), *[
+                    (forecast.catWin[cat], forecast.catTie[cat]) for cat in forecast.catWin
+                ]]:
+                    self.assertTrue(0 <= home <= 1)
+                    self.assertTrue(0 <= tie <= 1)
+                    self.assertLessEqual(home + tie, 1.0001)
+                    self.assertEqual(round(home, 4), home)
+                    self.assertEqual(round(tie, 4), tie)
 
-            self.assertGreaterEqual(
-                matchup.forecasts.homeOptimized.win,
-                matchup.forecasts.default.win,
-            )
-            self.assertLessEqual(
-                matchup.forecasts.awayOptimized.win,
-                matchup.forecasts.default.win,
-            )
+            self.assertGreaterEqual(matchup.forecasts.homeOptimized.win,
+                                    matchup.forecasts.default.win)
+            away_opt = matchup.forecasts.awayOptimized
+            default = matchup.forecasts.default
+            self.assertGreaterEqual(1 - away_opt.win - away_opt.tie + .0001,
+                                    1 - default.win - default.tie)
 
         # test json serialization
         cat5_instance_dict = asdict(cat5_instance)

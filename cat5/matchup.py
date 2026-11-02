@@ -45,9 +45,9 @@ class Matchup:
         lineup = self.home_lineup if use_home else self.away_lineup
 
         best_lineup: List[PlayerStart] = lineup.lineup
-        best_win_p = self.get_model().predict_win()
-        best_win_p = best_win_p if use_home else 1 - best_win_p
-        worst_win_p = 1 - best_win_p
+        initial = self.get_model().predict_outcome()
+        best_win_p = initial.home if use_home else initial.away
+        worst_win_p = best_win_p
         player_id_map: defaultdict[int, Player] = defaultdict(Player)
         player_win_p: defaultdict[int, float] = defaultdict(float)
         player_count: defaultdict[int, int] = defaultdict(int)
@@ -62,8 +62,8 @@ class Matchup:
 
         for _ in range(n):
             lineup.set_randomly(min_w=10, max_w=95)
-            win_p = self.get_model().predict_win()
-            win_p = win_p if use_home else 1 - win_p
+            result = self.get_model().predict_outcome()
+            win_p = result.home if use_home else result.away
             for player_start in lineup.lineup:
                 pid = player_start.player.playerId
                 player_id_map[pid] = player_start.player

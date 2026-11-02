@@ -24,6 +24,8 @@ class Team:
 class Forecast:
     win: float
     catWin: Dict[str, float]
+    tie: float
+    catTie: Dict[str, float]
 
 
 @dataclass
