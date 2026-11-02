@@ -16,6 +16,34 @@ before publishing the UI. Older forecasts display “Tie unavailable” until re
 
 https://cat5.jarno.site/
 
+## Player projections
+
+Per-game projections retain exponential recency weighting. Cumulative season,
+30-day, 15-day, and 7-day stats are split into nonoverlapping groups, so each
+observed game contributes once. Counting totals are preferred; per-game
+averages multiplied by games played are used when totals are unavailable.
+Individual game order is unavailable within each group, so production is
+assumed constant inside that group.
+
+The smoothing span is the larger of 30 and the number of observed games. For
+fewer than 30 games, a valid preseason per-game projection initializes the
+missing history. Without one, smoothing starts from the oldest observed group;
+missing data does not insert zero-production games. A player without observed
+data uses the preseason projection, or zero if neither is available.
+
+FG% and FT% are projected makes divided by projected attempts, with the same
+data and weights used for both counts. Zero attempts produces a zero percentage.
+Shooting pairs must be complete and have makes no greater than attempts.
+Missing/null stats and invalid numeric inputs are unavailable data, while true
+zeros remain observations. Contradictory narrower windows are skipped in favor
+of the accepted broader window, allowing only small floating-point differences.
+
+These are calculation and input-handling corrections, not a claim of improved
+forecast accuracy. The model still assumes independent Poisson counting totals,
+a normal approximation for uncertain shooting percentages, and independent
+category outcomes. Changing those assumptions or tuning the recency weights
+requires backtesting.
+
 
 ## Service
 Deployed to AWS using Lambda, DynamoDB, API Gateway, and EventBridge using SAM.
