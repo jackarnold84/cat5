@@ -23,9 +23,8 @@ def split(gp, **counts):
 
 def smooth(observations, prior=None):
     """Independent, per-observation reference for the grouped calculation."""
-    span = max(30, len(observations))
-    alpha = 2 / (span + 1)
-    value = prior if prior is not None and len(observations) < 30 else observations[0]
+    alpha = 2 / 31
+    value = prior if prior is not None else observations[0]
     for observation in observations:
         value = alpha * observation + (1 - alpha) * value
     return value
@@ -39,10 +38,10 @@ class TestPlayerProjection(unittest.TestCase):
             'last_15': split(5, PTS=200),
             'last_7': split(2, PTS=100),
         }, {'PTS': 999})
-        expected = smooth([5] * 30 + [20] * 5 + [100 / 3] * 3 + [50] * 2)
+        expected = smooth([5] * 30 + [20] * 5 + [100 / 3] * 3 + [50] * 2, 999)
         self.assertAlmostEqual(start.projection('PTS'), expected)
 
-    def test_short_season_uses_prior_only_for_unobserved_history(self):
+    def test_short_season_retains_existing_preseason_blend(self):
         start = make_start({'total': split(2, PTS=30),
                             'last_7': split(1, PTS=20)}, {'PTS': 5})
         self.assertAlmostEqual(start.projection('PTS'), ema_next([5] * 28 + [10, 20]))
@@ -58,6 +57,27 @@ class TestPlayerProjection(unittest.TestCase):
             with self.subTest(gp=gp):
                 start = make_start({'total': split(gp, PTS=12 * gp)}, {'PTS': 12})
                 self.assertAlmostEqual(start.projection('PTS'), 12)
+
+    def test_preseason_influence_fades_smoothly_through_game_30(self):
+        forecasts = []
+        for gp in (29, 30, 31, 82):
+            start = make_start({'total': split(gp, PTS=10 * gp)}, {'PTS': 30})
+            value = start.projection('PTS')
+            self.assertAlmostEqual(value, 10 + 20 * (29 / 31) ** gp)
+            self.assertGreater(value, 10)
+            forecasts.append(value)
+        self.assertGreater(forecasts[0], forecasts[1])
+        self.assertGreater(forecasts[1], forecasts[2])
+        self.assertLess(forecasts[0] - forecasts[1], .2)
+
+    def test_same_recent_change_has_same_effect_late_in_season(self):
+        forecasts = []
+        for gp in (30, 60, 82):
+            start = make_start({'total': split(gp, PTS=(gp - 10) * 10 + 200),
+                                'last_15': split(10, PTS=200)}, {'PTS': 10})
+            forecasts.append(start.projection('PTS'))
+        for value in forecasts:
+            self.assertAlmostEqual(value, smooth([20] * 10, 10))
 
     def test_missing_prior_does_not_add_zero_games(self):
         start = make_start({'total': split(2, PTS=30), 'last_7': split(1, PTS=20)})
@@ -121,7 +141,7 @@ class TestPlayerProjection(unittest.TestCase):
             with self.subTest(cat=cat):
                 start = make_start({'total': split(2, **{att: 11, made: 2}),
                                     'last_7': split(1, **{att: 1, made: 1})})
-                expected = smooth([1, 1]) / smooth([10, 1])
+                expected = .1 * (99 / 101) + (1 - 99 / 101)
                 self.assertAlmostEqual(start.projection(cat), expected)
                 self.assertAlmostEqual(start.projection(cat) * start.projection(att),
                                        start.projection(made))
@@ -149,15 +169,68 @@ class TestPlayerProjection(unittest.TestCase):
             with self.subTest(prior=prior):
                 self.assertEqual(make_start(prior=prior).projection('FT%'), 0)
 
-    def test_shooting_prior_and_history_share_weights(self):
+    def test_shooting_prior_and_history_use_attempt_weights(self):
         start = make_start({'total': split(2, FTA=12, FTM=6),
                             'last_7': split(1, FTA=2, FTM=2)},
                            {'FTA': 4, 'FTM': 3})
-        expected_makes = smooth([4, 2], 3)
         expected_attempts = smooth([10, 2], 4)
-        self.assertAlmostEqual(start.projection('FTM'), expected_makes)
+        after_older = .75 * (119 / 121) ** 10 + .4 * (1 - (119 / 121) ** 10)
+        expected_rate = after_older * (119 / 121) ** 2 + (1 - (119 / 121) ** 2)
+        self.assertAlmostEqual(start.projection('FTM'), expected_attempts * expected_rate)
         self.assertAlmostEqual(start.projection('FTA'), expected_attempts)
-        self.assertAlmostEqual(start.projection('FT%'), expected_makes / expected_attempts)
+        self.assertAlmostEqual(start.projection('FT%'), expected_rate)
+
+    def test_shooting_evidence_depends_on_attempts_not_games(self):
+        for cat, att, made in (('FG%', 'FGA', 'FGM'), ('FT%', 'FTA', 'FTM')):
+            for gp in (1, 29, 30, 82):
+                with self.subTest(cat=cat, gp=gp):
+                    start = make_start({'total': split(gp, **{att: 1, made: 1})},
+                                       {att: 4, made: 3})
+                    self.assertAlmostEqual(start.projection(cat), .75 * 119 / 121 + 2 / 121)
+
+    def test_more_attempts_shift_shooting_further_from_preseason(self):
+        values = []
+        for attempts in (1, 10, 100, 1000):
+            start = make_start({'total': split(30, FTA=attempts, FTM=attempts)},
+                               {'FTA': 4, 'FTM': 3})
+            values.append(start.projection('FT%'))
+        self.assertEqual(values, sorted(values))
+        self.assertLess(values[0], .76)
+        self.assertGreater(values[-1], .999)
+
+    def test_no_attempts_preserve_accuracy_while_lowering_volume(self):
+        start = make_start({'total': split(82, FTA=0, FTM=0)}, {'FTA': 4, 'FTM': 3})
+        self.assertAlmostEqual(start.projection('FT%'), .75)
+        self.assertGreater(start.projection('FTA'), 0)
+        self.assertLess(start.projection('FTA'), .02)
+
+    def test_no_attempt_recent_games_do_not_change_shooting_accuracy(self):
+        start = make_start({'total': split(10, FTA=10, FTM=10),
+                            'last_7': split(2, FTA=0, FTM=0)}, {'FTA': 4, 'FTM': 3})
+        self.assertAlmostEqual(start.projection('FT%'), 1 - .25 * (119 / 121) ** 10)
+
+    def test_low_volume_shooters_have_minimum_attempt_span(self):
+        start = make_start({'total': split(30, FTA=1, FTM=1)}, {'FTA': 1, 'FTM': .75})
+        self.assertAlmostEqual(start.projection('FT%'), .75 * 99 / 101 + 2 / 101)
+
+    def test_high_volume_shooters_keep_original_game_scale(self):
+        start = make_start({'total': split(1, FGA=20, FGM=20)}, {'FGA': 20, 'FGM': 10})
+        # Twenty attempts are one typical game; preserve roughly a 30-game span.
+        expected = 1 - .5 * (599 / 601) ** 20
+        self.assertAlmostEqual(start.projection('FG%'), expected)
+        self.assertAlmostEqual(expected, 1 - .5 * 29 / 31, delta=.0001)
+
+    def test_shooting_updates_remain_bounded_for_extreme_data(self):
+        for attempts, makes in ((1e-10, 0), (1e-10, 1e-10),
+                                (1e308, 0), (1e308, 1e308)):
+            with self.subTest(attempts=attempts, makes=makes):
+                start = make_start({'total': split(82, FTA=attempts, FTM=makes)},
+                                   {'FTA': 4, 'FTM': 3})
+                rate = start.projection('FT%')
+                self.assertTrue(math.isfinite(rate))
+                self.assertGreaterEqual(rate, 0)
+                self.assertLessEqual(rate, 1)
+                self.assertLessEqual(start.projection('FTM'), start.projection('FTA'))
 
     def test_tiny_valid_counts_are_preserved(self):
         start = make_start({'total': split(1, FTA=1e-10, FTM=5e-11)})
