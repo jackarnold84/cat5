@@ -12,7 +12,8 @@ commit history and an individual merge commit for each feature.
 1. `feature/tie-probabilities`: category and overall matchup ties.
 2. `feature/projection-correctness`: nonoverlapping player history, consistent
    shooting projections, and incomplete-data handling.
-3. Third feature: choose a descriptive branch when defined.
+3. `feature/projection-assumptions`: smooth preseason decay, fixed game recency,
+   and shooting accuracy weighted by attempts.
 4. Fourth feature: choose a descriptive branch when defined.
 
 The tie feature's implementation and tests belong in one feature commit. Keep

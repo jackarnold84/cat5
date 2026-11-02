@@ -25,21 +25,36 @@ averages multiplied by games played are used when totals are unavailable.
 Individual game order is unavailable within each group, so production is
 assumed constant inside that group.
 
-The smoothing span is the larger of 30 and the number of observed games. For
-fewer than 30 games, a valid preseason per-game projection initializes the
-missing history. Without one, smoothing starts from the oldest observed group;
-missing data does not insert zero-production games. A player without observed
-data uses the preseason projection, or zero if neither is available.
+Production and shot volume use a fixed 30-game smoothing span (`alpha = 2/31`).
+A valid preseason per-game projection initializes the estimate. Its influence
+fades by `(29/31)^games`, including beyond game 30, so there is no sudden cutoff
+or slowdown in responsiveness later in the season. Without a preseason estimate,
+smoothing starts from the oldest observed group; missing data does not insert
+zero-production games. A player without observed data uses the preseason
+projection, or zero if neither is available.
 
-FG% and FT% are projected makes divided by projected attempts, with the same
-data and weights used for both counts. Zero attempts produces a zero percentage.
-Shooting pairs must be complete and have makes no greater than attempts.
+Shooting accuracy uses the same exponential-smoothing method in units of shot
+attempts rather than games. Its span is 30 times the preseason per-game attempt
+projection, with a minimum of 100 attempts. For example, 15 projected FGA gives
+a 450-attempt span; two projected FTA gives a 100-attempt span. This preserves
+roughly the existing 30-game scale for typical volume while requiring more
+evidence for low-volume shooters. Without a valid positive preseason attempt
+projection, the span is 100 and the first observed shooting group initializes
+accuracy. Zero-attempt groups do not update accuracy. Within a group, attempts
+are assumed to have a constant make probability because shot order is unknown.
+
+Projected makes equal projected attempt volume times estimated shooting accuracy;
+FG% and FT% remain projected makes divided by projected attempts. Zero projected
+attempts produces a zero percentage. Shooting pairs must be complete and have
+makes no greater than attempts.
 Missing/null stats and invalid numeric inputs are unavailable data, while true
 zeros remain observations. Contradictory narrower windows are skipped in favor
 of the accepted broader window, allowing only small floating-point differences.
 
-These are calculation and input-handling corrections, not a claim of improved
-forecast accuracy. The model still assumes independent Poisson counting totals,
+These spans are simple assumptions, not fitted parameters or a measured claim
+of improved forecast accuracy. The method follows standard
+[exponential smoothing](https://otexts.com/fpp3/exponential-smoothing.html).
+The model still assumes independent Poisson counting totals,
 a normal approximation for uncertain shooting percentages, and independent
 category outcomes. Changing those assumptions or tuning the recency weights
 requires backtesting.

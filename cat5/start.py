@@ -49,6 +49,7 @@ class PlayerStart:
         self.game_date: date = self.game_datetime.date()
         self.injured = self.player.injured
         self.ema_window = 30
+        self.shooting_ema_min_attempts = 100
 
     def __repr__(self) -> str:
         return f'Start({self.player}, Date({self.game_date}))'
@@ -113,9 +114,15 @@ class PlayerStart:
         if not n_games:
             return prior or (0.0,) * len(cats)
 
-        # Keep the minimum span, even when a missing prior cannot pad the series.
-        alpha = 2 / (max(self.ema_window, n_games) + 1)
-        estimate = prior if prior and n_games < self.ema_window else ()
+        # A fixed game span keeps responsiveness constant through the season.
+        # Preseason influence decays naturally, without a game-count cutoff.
+        alpha = 2 / (self.ema_window + 1)
+        estimate = prior
+        shooting_rate = prior[1] / prior[0] if len(cats) == 2 and prior and prior[0] else None
+        # Preserve the original 30-game scale for typical shooting volume,
+        # with an attempt floor so low-volume shooters need real evidence.
+        shooting_span = max(self.shooting_ema_min_attempts,
+                            self.ema_window * prior[0] if len(cats) == 2 and prior else 0)
         for i, (gp, counts) in enumerate(windows):
             inner_gp, inner = windows[i + 1] if i + 1 < len(windows) else (
                 0, (0.0,) * len(cats))
@@ -129,6 +136,17 @@ class PlayerStart:
             weight = (1 - alpha) ** group_gp
             estimate = tuple(weight * old + (1 - weight) * rate
                              for old, rate in zip(estimate, rates))
+            if len(cats) == 2 and residual[0] > 0:
+                # Shooting skill learns from attempts, not games. Retain the
+                # same within-group constant-rate assumption as the game EMA.
+                rate = residual[1] / residual[0]
+                if shooting_rate is None:
+                    shooting_rate = rate
+                shot_weight = (1 - 2 / (shooting_span + 1)) ** residual[0]
+                shooting_rate = shot_weight * shooting_rate + (1 - shot_weight) * rate
+        if len(cats) == 2:
+            attempts = estimate[0]
+            return (attempts, attempts * shooting_rate if shooting_rate is not None else 0.0)
         return estimate
 
 
