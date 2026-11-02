@@ -95,15 +95,21 @@ class Processor:
                         awayOptimized=away_opt_forecast,
                     ),
                     homePlayerValue=[
-                        struct.PlayerValue(str(pv.player.playerId), pv.value)
+                        struct.PlayerValue(str(pv.player.playerId), pv.value,
+                                           pv.scheduled, pv.eligible, pv.recommended,
+                                           pv.decision, pv.starts)
                         for pv in home_player_values
                     ],
                     awayPlayerValue=[
-                        struct.PlayerValue(str(pv.player.playerId), pv.value)
+                        struct.PlayerValue(str(pv.player.playerId), pv.value,
+                                           pv.scheduled, pv.eligible, pv.recommended,
+                                           pv.decision, pv.starts)
                         for pv in away_player_values
                     ],
-                    homeGP=self.matchup_period.max_gp - matchup.home_lineup.remaining_gp,
-                    awayGP=self.matchup_period.max_gp - matchup.away_lineup.remaining_gp,
+                    homeGP=int(box.home_stats['GP']['value']),
+                    awayGP=int(box.away_stats['GP']['value']),
+                    homeLineup=matchup.home_lineup.optimization,
+                    awayLineup=matchup.away_lineup.optimization,
                 )
             )
 
@@ -130,10 +136,15 @@ class Processor:
         empty_player = EmptyStart.EmptyPlayer()
         for team in self.league.teams:
             for player in [*team.roster, empty_player]:
+                estimated_return = getattr(player, 'estimated_return', None)
                 players[str(player.playerId)] = struct.Player(
                     name=player.name,
                     pos=player.position,
                     proTeam=player.proTeam,
+                    injuryStatus=getattr(player, 'injuryStatus', '') or '',
+                    estimatedReturn=estimated_return.isoformat() if estimated_return else None,
+                    injuryNote=getattr(player, 'injury_note', ''),
+                    injured=getattr(player, 'injured', False),
                 )
         return dict(sorted(players.items(), key=lambda x: int(x[0])))
 

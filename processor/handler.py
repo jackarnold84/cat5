@@ -8,6 +8,7 @@ from pydantic.dataclasses import dataclass
 
 from .db import DBWriter
 from .espn_auth import league_credentials
+from .injuries import load_return_estimates
 from .processor import Processor
 
 IN_PROGRESS = 'IN_PROGRESS'
@@ -73,6 +74,7 @@ def handler(event: Dict[str, Any], _) -> Dict[str, Any]:
 
     # process cat5 data
     print('--> running cat5 processor')
+    load_return_estimates(league)
     processor = Processor(league, box_scores)
     if lambda_payload.iter:
         processor.n_iter = lambda_payload.iter

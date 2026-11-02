@@ -60,6 +60,63 @@ category outcomes. Changing those assumptions or tuning the recency weights
 requires backtesting.
 
 
+## Lineup decisions
+
+The optimizer considers every possible **number** of starts, including zero,
+using ownership-ranked seeds, random subsets, and two passes of single-game
+add/remove/swap improvements. The opponent remains at its default lineup.
+This is an approximate search over the remaining weekly game cap, not a
+complete daily lineup solver: position eligibility and daily slot limits
+are not enforced. Exact ties favor fewer games used. Remaining capacity is
+clamped to zero once the game cap is reached.
+
+Player importance now measures a paired counterfactual in the same optimized
+lineup. For each selected game, impact is the win chance lost when removing it
+or using its best available replacement. For each benched game, impact is the
+best win-chance change when adding it (if capacity allows) or swapping it for
+a selected game. `PlayerValue.value` is the signed mean impact over that
+player's eligible games, in probability units; the UI shows percentage points
+per game. It replaces the old relative 0–1 score. Positive means valuable to
+start, negative means valuable to bench, and impacts must not be added together.
+They are matchup-specific and are not overall basketball talent ratings.
+
+A player is labeled **Start** if all eligible games are selected and each has
+more than 0.2 percentage points of impact; **Sit** if all are benched and each
+costs more than 0.2 points to include. **Consider** includes mixed start counts,
+close alternatives, and interchangeable dates. The threshold is a display
+heuristic, not statistical confidence. Unavailable players and players without
+remaining games stay visible. Player details include scheduled, eligible, and
+recommended games, plus each eligible date's decision and impact.
+
+`homeLineup` / `awayLineup` expose remaining capacity, available games,
+recommended starts, unused slots, and `winByStarts`: the best probability found
+at each start count. The UI distinguishes game shortages from deliberately
+unused capacity and compares using no games, some games, or all available slots.
+These comparisons are search estimates, not proven global optima.
+
+### Injury returns
+
+The pinned fantasy ESPN client exposes `injured` and `injuryStatus`; a checked
+raw `mRoster` response also had no return dates. The separate public
+[ESPN NBA injury feed](https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries)
+provides `details.returnDate` and `shortComment`. The handler fetches this feed
+once with an eight-second timeout. It is optional: failure preserves the
+roster-status fallback. Only the current NBA season, a matching feed season,
+and a feed updated within 48 hours are accepted, so current injuries are never
+injected into historical forecasts.
+
+A currently injured player's games on/after a **future** estimated return date
+become conditionally eligible. Missing, malformed, past, or same-day estimates
+do not override a still-injured roster status; suspension remains excluded.
+The UI shows return estimates and notes explicitly. An estimate is not medical
+clearance or confirmation that a player will play, and the model does not invent
+return probabilities. Fantasy IR activation and daily roster rules still need
+to be checked by the manager.
+
+Deploy the processor and regenerate forecasts with these fields when publishing
+the UI. Older data shows a refresh notice instead of displaying its old relative
+scores as new impact values.
+
 ## Service
 Deployed to AWS using Lambda, DynamoDB, API Gateway, and EventBridge using SAM.
 Both Lambdas are zip packages. The processor zip is built in a Linux ARM64
