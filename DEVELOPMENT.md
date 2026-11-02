@@ -14,7 +14,8 @@ commit history and an individual merge commit for each feature.
    shooting projections, and incomplete-data handling.
 3. `feature/projection-assumptions`: smooth preseason decay, fixed game recency,
    and shooting accuracy weighted by attempts.
-4. Fourth feature: choose a descriptive branch when defined.
+4. `feature/lineup-decisions`: conditional injury returns, paired player impact,
+   variable start counts, and mobile start/sit guidance.
 
 The tie feature's implementation and tests belong in one feature commit. Keep
 follow-up commits for a feature on its own branch until it is integrated.

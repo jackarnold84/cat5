@@ -59,6 +59,27 @@ class TestModel(unittest.TestCase):
             self.assertGreaterEqual(1 - away_opt.win - away_opt.tie + .0001,
                                     1 - default.win - default.tie)
 
+            for guidance, values, win in [
+                (matchup.homeLineup, matchup.homePlayerValue,
+                 matchup.forecasts.homeOptimized.win),
+                (matchup.awayLineup, matchup.awayPlayerValue,
+                 1 - away_opt.win - away_opt.tie),
+            ]:
+                self.assertEqual(sum(v.recommended for v in values), guidance['recommended'])
+                self.assertEqual(sum(v.eligible for v in values), guidance['available'])
+                self.assertEqual(guidance['remaining'],
+                                 guidance['recommended'] + guidance['unused'])
+                chosen = next(r for r in guidance['winByStarts']
+                              if r['starts'] == guidance['recommended'])
+                self.assertAlmostEqual(chosen['win'], win, delta=.0002)
+                for value in values:
+                    self.assertLessEqual(value.recommended, value.eligible)
+                    self.assertLessEqual(value.eligible, value.scheduled)
+                    self.assertEqual(len(value.starts), value.eligible)
+                    self.assertTrue(-1 <= value.value <= 1)
+                    self.assertTrue(all(-1 <= start['impact'] <= 1 for start in value.starts))
+                    self.assertNotEqual(value.player, '0')
+
         # test json serialization
         cat5_instance_dict = asdict(cat5_instance)
         cat5_instance_json = json.dumps(cat5_instance_dict, indent=2)
