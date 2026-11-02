@@ -191,3 +191,15 @@ npm run deploy # to GitHub pages
 ```
 
 Update [`gatsby-config.js`](/gatsby-config.js) for deployment configurations
+
+
+Ant Design 4 styles are compiled at build time using Gatsby's Less plugin.
+`src/styles/antd.less` imports the components in one stable order, before local
+CSS overrides, so the static HTML is styled before React hydrates. Add styles
+there when introducing another Ant Design component. Theme variables live in
+`gatsby-config.js`; no runtime theme provider is required.
+
+Player portraits use ESPN IDs already present in forecasts, with resized,
+lazy-loaded images. Team images use the existing `logoUrl`. Missing or failed
+images fall back to initials without changing the reserved image dimensions.
+No processor refresh is required for these image and styling changes.
