@@ -8,7 +8,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;
 }
 
@@ -78,3 +78,29 @@ main {
 .plain-link {
   text-decoration: none;
 }
+
+/* Keep sizing predictable on narrow screens and with enlarged text. */
+*, *::before, *::after { box-sizing: border-box; }
+body { color: #252733; background: #fff; line-height: 1.5; }
+img { max-width: 100%; }
+button, input, select, textarea { font: inherit; }
+a:focus-visible, button:focus-visible, summary:focus-visible,
+.ant-radio-button-wrapper:focus-within {
+  outline: 2px solid #8e1731;
+  outline-offset: 3px;
+}
+.ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  height: auto;
+  white-space: normal;
+  vertical-align: middle;
+}
+.ant-btn > svg { display: block; flex-shrink: 0; }
+.ant-btn > .anticon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ant-btn > .anticon + span, .ant-btn > span + .anticon { margin-left: 0; }
+.ant-drawer-content { font-size: 16px; }
+.page-state { padding: 24px 16px; border: 1px solid #e1e3e9; border-radius: 12px; background: #f5f6f8; text-align: center; }

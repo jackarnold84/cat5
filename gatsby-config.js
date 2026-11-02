@@ -7,6 +7,22 @@ module.exports = {
     siteUrl: `https://cat5.jarno.site`
   },
   plugins: [
+    {
+      resolve: 'gatsby-plugin-less',
+      options: {
+        lessOptions: {
+          javascriptEnabled: true,
+          modifyVars: {
+            '@primary-color': '#c80f2d',
+            '@font-size-base': '16px',
+            '@font-family': "'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            '@border-radius-base': '8px',
+            '@height-base': '44px',
+            '@height-lg': '48px',
+          },
+        },
+      },
+    },
     "gatsby-plugin-styled-components",
     {
       resolve: `gatsby-plugin-manifest`,

@@ -1,6 +1,6 @@
 # Feature development workflow
 
-Use `work/feature-series` as the integration branch for the current four-feature
+Use `work/feature-series` as the integration branch for the current five-feature
 batch. Keep `main` as the stable baseline until the batch is ready for release.
 
 Each feature gets its own branch, created from the latest integration branch.
@@ -16,6 +16,8 @@ commit history and an individual merge commit for each feature.
    and shooting accuracy weighted by attempts.
 4. `feature/lineup-decisions`: conditional injury returns, paired player impact,
    variable start counts, and mobile start/sit guidance.
+5. `feature/mobile-ui`: mobile layout, player and team images, simplified controls,
+   and Ant Design 4 styles compiled before static first paint.
 
 The tie feature's implementation and tests belong in one feature commit. Keep
 follow-up commits for a feature on its own branch until it is integrated.
@@ -64,7 +66,7 @@ review is wanted, push the integration branch and the relevant feature branch;
 open feature PRs against `work/feature-series`. Do not merge an already integrated
 feature a second time through a PR.
 
-After all four features are complete, rerun the full checks on the integration
+After all five features are complete, rerun the full checks on the integration
 branch and review its complete diff against `main`. Publish one release PR from
 `work/feature-series` to `main`. Keep unrelated work out of the batch.
 

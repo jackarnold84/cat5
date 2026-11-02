@@ -9,11 +9,11 @@ import config from '../config.json'
 const API_ENDPOINT = 'https://1jk32bv8k9.execute-api.us-east-2.amazonaws.com/Prod/cat5/data/'
 
 const ApiPage = ({ location }) => {
-  // get query params
-  const urlParams = new Proxy(new URLSearchParams(location.search), {
-    get: (searchParams, prop) => searchParams.get(prop),
-  });
-  const tag = urlParams.tag
+  // Static HTML and the first browser render must agree before reading the query.
+  const [tag, setTag] = React.useState(null)
+  React.useEffect(() => {
+    setTag(new URLSearchParams(location.search).get('tag') || '')
+  }, [location.search])
 
   // call API
   const [isReady, setIsReady] = React.useState(false)
@@ -21,10 +21,14 @@ const ApiPage = ({ location }) => {
   const [cat5Data, setCat5Data] = React.useState(null)
   React.useEffect(() => {
     if (!config.leagues[tag]) return
+    const controller = new AbortController()
+    setIsReady(false)
+    setIsError(false)
     const url = `${API_ENDPOINT}${tag}`
     fetch(url,
       {
         method: 'GET',
+        signal: controller.signal,
         headers: {
           'Accept': 'application/json',
         },
@@ -41,10 +45,22 @@ const ApiPage = ({ location }) => {
         setIsReady(true)
       })
       .catch(error => {
+        if (error.name === 'AbortError') return
         console.warn(error)
         setIsError(true)
       })
+    return () => controller.abort()
   }, [tag])
+
+  if (tag === null) {
+    return (
+      <Layout>
+        <Container>
+          <div role="status" aria-label="Loading forecasts"><Skeleton active /></div>
+        </Container>
+      </Layout>
+    )
+  }
 
   // tag not found
   if (!config.leagues[tag]) {
@@ -74,18 +90,18 @@ const ApiPage = ({ location }) => {
 
       {isError ? (
         <Container centered >
-          <div>There was an error calling the API</div>
+          <div className="page-state" role="alert">Unable to load forecasts. Please try refreshing the page.</div>
         </Container>
       ) : !isReady ? (
         <Container>
-          <Skeleton active />
+          <div role="status" aria-label="Loading forecasts"><Skeleton active /></div>
         </Container>
       ) : cat5Data.year !== config.leagues[tag].year ? (
         <Container centered>
-          <div>The {config.leagues[tag].year - 1}–{String(config.leagues[tag].year).slice(-2)} forecast is not available yet.</div>
+          <div className="page-state">The {config.leagues[tag].year - 1}–{String(config.leagues[tag].year).slice(-2)} forecast is not available yet.</div>
         </Container>
       ) : cat5Data.matchups.length === 0 ? (
-        <Container centered><div>No active matchups are available.</div></Container>
+        <Container centered><div className="page-state">No active matchups are available.</div></Container>
       ) : (
         <Forecast cat5Data={cat5Data} />
       )}
