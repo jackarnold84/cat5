@@ -1,0 +1,8 @@
+// Compile the components used by CAT5 once, in a stable order, for static first paint.
+// Automatic per-component imports can otherwise produce conflicting CSS order.
+@import '~antd/lib/button/style/index.less';
+@import '~antd/lib/drawer/style/index.less';
+@import '~antd/lib/list/style/index.less';
+@import '~antd/lib/radio/style/index.less';
+@import '~antd/lib/skeleton/style/index.less';
+@import '~antd/lib/table/style/index.less';

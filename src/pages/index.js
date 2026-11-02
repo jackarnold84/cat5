@@ -28,7 +28,7 @@ const IndexPage = () => {
         />
       </Container>
       <Container size={16} centered>
-        <h4>Who will win category number 5?</h4>
+        <h4>Who will win the most categories?</h4>
       </Container>
 
       <Container size={16} width={400}>
